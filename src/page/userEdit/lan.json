@@ -12,15 +12,15 @@
     "emailM": "邮箱格式错误"
   },
   "en": {
-    "edit": "Edit data",
+    "edit": "Edit profile",
     "avatar":"replace",
-    "dis1": "use JPNG,GIF,JPG format，recommended： 160px*160px",
+    "dis1": "support JPNG,GIF,JPG format，recommended size： 160px*160px",
     "name": "name",
     "email": "email",
-    "area": "area",
-    "webUrl": "Personal web site",
-    "introduce": "introduce",
-    "save": "save setting",
+    "area": "location",
+    "webUrl": "Personal website",
+    "introduce": "introduction",
+    "save": "save",
     "emailM": "Invalid format"
 
   },
