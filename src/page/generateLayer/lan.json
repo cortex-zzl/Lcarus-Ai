@@ -9,12 +9,12 @@
     "down": "下载"
   },
   "en": {
-    "title": "AI Art production",
-    "chance":"Selection model",
-    "model1":"Space map model",
-    "model2":"Spaceship diagram model",
+    "title": "AI Art creator",
+    "chance":"Select a model",
+    "model1":"Space model",
+    "model2":"Spaceship model",
     "generate":"generate",
-    "dis": "，AI Art production",
+    "dis": "input some words，AI can create artwork",
     "down": "download"
   },
   "hn": {
