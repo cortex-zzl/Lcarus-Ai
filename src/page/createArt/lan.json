@@ -24,14 +24,14 @@
   "en": {
     "upload": "Uploading artwork",
     "layer": "layer",
-    "dis": "introduce",
+    "dis": "description",
     "name": "name",
     "canvas": "canvas",
     "next": "next",
     "prev": "prev",
     "step1": "Upload the layer",
     "step2" : "preview",
-    "step3" : "COINS",
+    "step3" : "mint",
     "step4" : "complete",
     "confirm" : "Confirm the operation",
     "size": "size",
@@ -39,8 +39,8 @@
     "error2" : "Please enter the canvas size",
     "error3" : "The canvas should have at least one layer",
     "error4" : "Each layer should have at least one image",
-    "error5" : "You need a name for each layer",
-    "error6" : "In this layer, the image already exists",
+    "error5" : "You need add name for each layer",
+    "error6" : "The image has already existed in this layer",
     "error7" : "Are you sure to leave this page? Your data will not be saved"
   },
   "hn": {
