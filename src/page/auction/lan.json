@@ -33,7 +33,7 @@
 
   },
   "en": {
-    "canvas" : "canvas",
+    "canvas" : "test",
     "layer" : "layer",
     "day": "day",
     "hour": "h",
@@ -46,7 +46,7 @@
     "price": "Current Price",
     "auctionRecord": "Latest auction record",
     "offer": "offer",
-    "describe": "describe",
+    "describe": "description",
     "details": "details",
     "createTime" : "create time",
     "EXIFinfo" : "EXIF info",
@@ -55,13 +55,13 @@
     "balance" : "balance",
     "serviceCharge" : "service charge",
     "mayPay" : "about to pay",
-    "determine" : "determine",
+    "determine" : "confirm",
     "cancel" : "cancel",
-    "login": "User not logged in wallet, please log in and try again",
+    "login": "User is not logged in wallet, please log in and try again",
     "countTime": "countdown",
     "inAuction": "in auction",
     "upcomingAuction": "upcoming auction",
-    "fixedPrice": "fixed price",
+    "fixedPrice": "list price",
     "Notsale": "not for sale"
   },
   "hn": {
