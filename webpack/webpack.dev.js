@@ -56,14 +56,20 @@ module.exports = merge(common, {
       warnings: true,
       errors: true
     },
-    port: 8080,
+    port: 8066,
     proxy: {
       '/ai': {
         target: 'http://share.cortexlabs.ai:8081',
         pathRewrite: {'^/ai': ''},
         changeOrigin: true,
         secure: false
-      }
+      },
+      '/wallet': {
+        target: 'https://cerebro.cortexlabs.ai/wallet',
+        pathRewrite: {'^/wallet': ''},
+        changeOrigin: true,
+        secure: false
+      },
     }
   }
 });

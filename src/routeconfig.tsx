@@ -73,7 +73,7 @@ export const perRoutes = [
   },
   {
     name: '艺术品定价',
-    path: '/priceSet',
+    path: '/priceSet/:token',
     component:  priceSet 
   }
 ]

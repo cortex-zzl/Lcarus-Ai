@@ -64,15 +64,24 @@ export const walletSign = (address, data) => {
     hn: '동작 확인'
   }
   return new Promise((resolve, reject) =>
-    ctxWeb3.personal.sign(
-      data,
-      address,
-      (err, signature) => {
+    // ctxWeb3.personal.sign(
+    //   data,
+    //   address,
+    //   (err, signature) => {
         
-          if (err) return reject(err);
-          return resolve({signature });
-      }
-    )
+    //       if (err) return reject(err);
+    //       return resolve({signature });
+    //   }
+    // )
+    ethereum.request({
+      method: 'personal_sign',
+      params: [
+        data,
+        address
+      ]
+    }).then(signature => {
+      return resolve({signature })
+    }).catch(err => reject(err))
   )
 }
 // 从签名获得recoverid

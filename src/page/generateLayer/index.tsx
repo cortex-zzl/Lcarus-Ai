@@ -3,7 +3,7 @@ import { Input, Select, message, Form, Button, Checkbox } from 'antd';
 const { Option } = Select;
 import { LoadingOutlined, PlusOutlined } from '@ant-design/icons';
 const json = require('./lan.json');
-import { Consumer } from '../../index';
+import { ThemeContext } from '../../index';
 import {API, uploadAvatar, walletSign} from '../../fetch/fetch'
 import './generateLayer.less'
 declare const window: any;
@@ -26,7 +26,7 @@ export  class generateLayer extends React.Component {
   render() {
     
     return (
-      <Consumer>
+      <ThemeContext.Consumer>
         {
           value => (
             <div id='generateLayer'>
@@ -48,7 +48,7 @@ export  class generateLayer extends React.Component {
             </div>
           )
         }
-      </Consumer>
+      </ThemeContext.Consumer>
     )
   }
 }

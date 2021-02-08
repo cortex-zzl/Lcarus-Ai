@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Input, Tooltip, message, Table, Button, Spin } from 'antd';
 import {  EyeOutlined, HeartOutlined , SyncOutlined} from '@ant-design/icons';
 const json = require('./lan.json');
-import { Consumer } from '../../index';
+import { ThemeContext } from '../../index';
 import { Link } from 'react-router-dom';
 import {API, uploadAvatar, walletSign, getRecoverid} from '../../fetch/fetch'
 import './auction.less'
@@ -27,6 +27,7 @@ function gets(s:number) {
 
 
 export  class Auction extends React.Component {
+  static contextType = ThemeContext;
   constructor(props:any) {
     super(props)
     this.state = {
@@ -116,7 +117,7 @@ export  class Auction extends React.Component {
     loading: boolean
   }
   offer(message){
-    if (!window.ctxWeb3.eth.defaultAccount) {
+    if (!this.context.address) {
       message.error(message)
     }
   }
@@ -264,7 +265,7 @@ export  class Auction extends React.Component {
       },
     ];
     return (
-      <Consumer>
+      <ThemeContext.Consumer>
         {
           value => (
 
@@ -427,7 +428,7 @@ export  class Auction extends React.Component {
             </Spin>
             )
         }
-      </Consumer>
+      </ThemeContext.Consumer>
     )
   }
 }

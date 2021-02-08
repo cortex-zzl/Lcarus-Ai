@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Input, Upload, message, Form, Button, Checkbox } from 'antd';
 import { LoadingOutlined, PlusOutlined } from '@ant-design/icons';
 const json = require('./lan.json');
-import { Consumer } from '../../index';
+import { ThemeContext } from '../../index';
 import {API, uploadAvatar, walletSign, getRecoverid} from '../../fetch/fetch'
 import './userEdit.less'
 declare const window: any;
+import {ipfsAdd, ipfsGet} from '../../fetch/ipfs.js'
 
 function getBase64(img, callback) {
   const reader = new FileReader();
@@ -28,6 +29,7 @@ function beforeUpload(file) {
 
 
 export  class userEdit extends React.Component {
+  static contextType = ThemeContext;
   constructor(props:any) {
     super(props)
     this.state = {
@@ -40,6 +42,7 @@ export  class userEdit extends React.Component {
         area: '',
         webUrl: '',
         introduce: '',
+        imgHash: ''
       }
       
     }
@@ -54,6 +57,7 @@ export  class userEdit extends React.Component {
       area: string,
       webUrl: string,
       introduce: string,
+      imgHash: string
     }
     
   }
@@ -64,35 +68,48 @@ export  class userEdit extends React.Component {
       return;
     }
     if (info.file.status === 'done') {
-      // Get this url from response in real world.
-      getBase64(info.file.originFileObj, imageUrl =>
-        {
-          this.setState({ loading: false })
-          this.setState({
-            userInfor: {
-            ...this.state.userInfor,
-            imageUrl:imageUrl
-            }
-          })
-        }
-      );
+      getBase64(info.file.originFileObj, (data) => {
+        console.log(data)
+        this.setState({
+          loading: false, 
+          userInfor: {
+          ...this.state.userInfor,
+          imgHash: info.file.response.hash,
+          imgurl: data
+          }
+        })
+      })
+      
     }
   };
   componentDidMount(){
-    API.getuserInfo(window.ctxWeb3.eth.defaultAccount).then(res => {
+    let _this = this
+    API.getuserInfo(this.context.address).then(res => {
       this.setState ( {userInfor: res})
       this.setState ( {loadingForm: true})
+      getImgUrl()
     })
+    async function getImgUrl () {
+      if (_this.state.userInfor.imgHash) {
+        const imgConetent = await ipfsGet(_this.state.userInfor.imgHash)
+        _this.setState ( {userInfor: {
+          ..._this.state.userInfor,
+          imgurl: imgConetent[0].content.toString()
+        }})
+      }
+    }
+    
   }
   render() {
     const onFinish = (values: any) => {
       for (let key in values) {
         if (values[key] === undefined) values[key] = ''
       }
+      values.imgHash = this.state.userInfor.imgHash
       const data = JSON.stringify({ts: Math.ceil(new Date().getTime() / 1000), ...values})
-      walletSign(window.ctxWeb3.eth.defaultAccount, data)
+      walletSign(this.context.address, data)
       .then(res => {
-        API.postuserInfo(data, window.ctxWeb3.eth.defaultAccount, res.signature)
+        API.postuserInfo(data, this.context.address, res.signature)
         .then(resData => {
           if (resData == 'OK') {
             message.success('success')
@@ -117,7 +134,7 @@ export  class userEdit extends React.Component {
       </div>
     );
     return (
-      <Consumer>
+      <ThemeContext.Consumer>
         {
           value => (
             <div id='userEdit'>
@@ -130,12 +147,20 @@ export  class userEdit extends React.Component {
                     listType="picture-card"
                     className="avatar-uploader"
                     showUploadList={false}
-                    // action={(file) =>uploadAvatar(file)}
-                    action='https://www.mocky.io/v2/5cc8019d300000980a055e76'
-                    beforeUpload={beforeUpload}
+                    customRequest = {(v) => {
+                      getBase64(v.file, data => {
+                        ipfsAdd(Buffer.from(data))
+                        .then(res => {
+                          v.onSuccess(res[0], v.file)
+                        })
+                        .catch(res => {
+                          v.onError(res[0], v.file)
+                        })
+                      })
+                    }}
                     onChange={this.handleChange}
                   >
-                    {imgurl ? <img src={imgurl} alt="avatar" style={{ width: '100%' }} /> : uploadButton}
+                    {this.state.userInfor.imgurl ? <img src={imgurl} alt="avatar" style={{ width: '100%' }} /> : uploadButton}
                     <p className='disT'>{json[value.lan].dis1}</p>
                   </Upload>
                 </div>
@@ -196,7 +221,7 @@ export  class userEdit extends React.Component {
             </div>
           )
         }
-      </Consumer>
+      </ThemeContext.Consumer>
     )
   }
 }

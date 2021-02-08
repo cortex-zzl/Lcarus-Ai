@@ -1,12 +1,12 @@
 import React from 'react';
 const json = require('./lan.json');
 import { Input, message } from 'antd';
-import { Consumer } from '../../index';
+import { ThemeContext } from '../../index';
 import { UserOutlined } from '@ant-design/icons';
 
 export function Foot() {
   return (
-    <Consumer>
+    <ThemeContext.Consumer>
       {(value) => (
         <div id="appFoot">
           <h2>
@@ -25,6 +25,6 @@ export function Foot() {
           </div>
         </div>
       )}
-    </Consumer>
+    </ThemeContext.Consumer>
   );
 }

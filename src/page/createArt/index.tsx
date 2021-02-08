@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
-import { Input, Upload, message, Form, Button, Popconfirm, Steps,Collapse, InputNumber } from 'antd';
+import { Input, Upload, message, Form, Button, Spin, Steps,Collapse, InputNumber } from 'antd';
 const { Step } = Steps;
 const { Panel } = Collapse;
-import { DeleteOutlined, UploadOutlined } from '@ant-design/icons';
+import { DeleteOutlined, UploadOutlined , CheckOutlined} from '@ant-design/icons';
 const json = require('./lan.json');
-import { Consumer } from '../../index';
+import { ThemeContext } from '../../index';
 import { Link } from 'react-router-dom';
 import {API, uploadAvatar, walletSign} from '../../fetch/fetch'
 import './createArt.less'
 import { web3Object } from '../../interface/contract.js'
 declare const window: any;
+import Web3 from 'web3'
+import {ipfsAdd} from '../../fetch/ipfs.js'
+import {sendCoin} from '../../interface/sendTransaction.js'
 
 function getBase64(img, callback) {
   const reader = new FileReader();
@@ -32,8 +35,11 @@ function beforeUpload(file) {
 
 
 export  class createArt extends React.Component {
+  static contextType = ThemeContext;
   constructor(props:any) {
     super(props)
+    this.COINS = this.COINS.bind(this)
+    this.COINS2 = this.COINS2.bind(this)
     this.state = {
       current: 0,
       uploadData: {
@@ -45,20 +51,19 @@ export  class createArt extends React.Component {
             introduce: '',
             showIndex: 0, 
             // 每个图层有多个状态
-            list: [{
-              uid: '-1',
-              name: 'xxx.png',
-              url: 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
-              thumbUrl: 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
-              size: 10000,
-              type: 'png',
-            }]
+            list: []
           } 
         ],
         width: 0,
         height: 0,
-        isComplete: false
-      }
+        isComplete: false,
+        tokenId: null,
+      },
+      loading: false,
+      loadingM:'',
+      coinEnd: false,
+      canvasCoin: false,
+      coins: []
     }
   }
   state: {
@@ -73,20 +78,121 @@ export  class createArt extends React.Component {
       }>,
       width: any,
       height: any,
-      isComplete: boolean
+      isComplete: boolean,
+      tokenId: any,
     }
+    loading: boolean,
+    loadingM:string,
+    coinEnd: boolean,
+    canvasCoin: boolean, // 主画布是否铸币完成
+    coins: Array<number> // 完成铸币的图层下标
   }
-  componentDidMount(){
+  async COINS(item:any) {
+    this.setState({loading: true, loadingM: 'save Canvas'})
+    const canvasJson = JSON.stringify({
+      width: this.state.uploadData.width, height: this.state.uploadData.height, canvasName: this.state.uploadData.canvasName,
+      layers: this.state.uploadData.layers.map(item => {
+        return {
+          name: item.name,
+          introduce: item.introduce,
+          list: item.list.map(todo => {
+            return todo.response.hash
+          })
+        }
+      })
+    })
+    try {
+      const ipfsRes = await ipfsAdd(Buffer.from(canvasJson))
+      this.setState({loading: true, loadingM: 'Check user permissions'})
+      var  address = this.context.address
+      this.setState({loadingM: 'Assign artwork IDs'})
+
+      let tokenId = await web3Object.managerContract.methods.expectedTokenSupply().call({from: address, gas: 1000000})
+      this.state.uploadData.tokenId = tokenId
+      const obj = [
+        address,
+        tokenId,
+        this.state.uploadData.layers.length,
+        window.artSalesProceeds[0],
+        window.artSalesProceeds[1]
+      ]
+      this.setState({loadingM: 'Art Registration'})
+      const whitelistTokenForCreator = web3Object.managerContract.methods.whitelistTokenForCreator(...obj).encodeABI()
+      // const whitelistTokenForCreator = web3Object.managerContract2.methods.func(5).encodeABI()
+      sendCoin(whitelistTokenForCreator, address).then(res => {
+      this.setState({loadingM: 'Start COINS'})
+        web3Object.managerContract.methods.mintArtwork(
+          tokenId, ipfsRes[0].hash, [address]
+          ).send({from: address})
+          .then(res => {this.setState({loading: false, loadingM: 'End COINS',canvasCoin: true})})
+          .catch(err => message.error(JSON.stringify(err)))
+      }).catch(err => message.error(JSON.stringify(err)))
+    } catch(err) {
+      message.error(JSON.stringify(err))
+    }
+    
+    
+  }
+  async COINS2(index: number) {
+    var  address = this.context.address
+    const layerTokenId = this.state.uploadData.tokenId - 0 + 1
+    this.setState({loading: true, loadingM: 'Save Layers Data'})
+    const layerJson = JSON.stringify({
+      name: this.state.uploadData.layers[index].name,
+      introduce: this.state.uploadData.layers[index].introduce,
+      layerTokenId,
+      list: this.state.uploadData.layers[index].list.map(item => {
+        return item.response.hash
+      })
+    })
+    const ipfsRes = await ipfsAdd(Buffer.from(layerJson))
+    this.setState({loadingM: 'Start COINS'})
+    const obj = [
+      layerTokenId,
+      ipfsRes[0].hash,
+      [0],
+      [this.state.uploadData.layers[index].list.length],
+      -1,
+      []
+    ]
+    web3Object.managerContract.methods.setupControlToken(...obj).send({from: address})
+    .then(res => 
+      {
+        console.log(res)
+        this.setState({
+          loading: false,
+          loadingM: 'End COINS',
+          canvasCoin: true,
+          coins: this.state.coins.concat([index]),
+          tokenId: this.state.uploadData.tokenId + 1,
+        })
+        if (this.state.coins.length === this.state.uploadData.layers.length) {
+          this.setState({coinEnd: true})
+        }
+      })
+    .catch(error => this.setState({loadingM: JSON.stringify(error), loading: false}))
+  }
+  async componentDidMount(){
+    // 注册为艺术家白名单
+    // var  address = this.context.address
+    // const whitelistTokenForCreator = web3Object.managerContract.methods.whitelistUser(address).encodeABI()
+    // sendCoin(whitelistTokenForCreator, address).then(res => {
+    //   console.log(res)
+    //   }).catch(err => message.error(JSON.stringify(err)))
     if (window.localStorage.uploadData){
       this.setState({uploadData: JSON.parse(window.localStorage.uploadData)})
     }
-    // window.onbeforeunload=function(e){
-    //   var e = window.event||e;  
-    //   e.returnValue=(json[window.localStorage.language].error7);
-    // }
-    console.log(web3Object)
-    web3Object.managerContract.methods.artistWhitelist(window.ctxWeb3.eth.defaultAccount).call({from: window.ctxWeb3.eth.defaultAccount})
-    .then(res => console.log(res))
+    window.onbeforeunload=function(e){
+      var e = window.event||e;  
+      e.returnValue=(json[window.localStorage.language].error7);
+    }
+    web3Object.managerContract.methods.artistWhitelist(this.context.address).call({from: this.context.address, gas:1000000})
+    .then(res => {
+      // 用户没有创建艺术品的权限
+      if (!res) {
+        message.error('no permissions')
+      }
+    })
   }
   componentWillUnmount(){
     // 如果没有完成就退出，存在本地
@@ -97,27 +203,19 @@ export  class createArt extends React.Component {
     window.onbeforeunload = null
   }
   handleChange = (info, item) => {
-    console.log(info)
     // if (info.file.status === 'uploading') {
     //   this.setState({ loading: true });
     //   return;
     // }
     if (info.file.status === 'removed') {
-      item.list = item.list.filter(todo => todo.name !== info.file.name)
+      item.list = info.fileList
     }
     // if (info.file.status === 'error') {
     //   item.list = item.list.filter(todo => todo.name !== info.file.name)
     // }
-    if (info.file.status === 'done' || info.file.status === 'error') {
+    if (info.file.status === 'done') {
       // Get this url from response in real world.
-      getBase64(info.file.originFileObj, imageUrl =>{
-        info.fileList.forEach((todo, index) => {
-          item.list[index] = item.list[index] || {}
-          item.list[index].url = todo.thumbUrl
-          item.list[index].name = todo.name.split('.')[0]
-        })
-      });
-      console.log(this.state.uploadData.layers[0].list)
+      item.list = info.fileList
       this.setState({uploadData: {...this.state.uploadData}})
     }
   };
@@ -148,14 +246,13 @@ export  class createArt extends React.Component {
           return
         }
       }
-      console.log(uploadData)
       this.setState({current: this.state.current + 1})
     };
     const prev = (lan) => {
       this.setState({current: this.state.current - 1})
     };
     const genExtra = (index) => (
-      <Consumer>  
+      <ThemeContext.Consumer>  
         {
           value => (
 
@@ -172,12 +269,12 @@ export  class createArt extends React.Component {
             }}/>
           )
         }
-      </Consumer>
+      </ThemeContext.Consumer>
      
       
     );
     return (
-      <Consumer>
+      <ThemeContext.Consumer>
         {
           value => (
             <div id='createArt'>
@@ -249,19 +346,29 @@ export  class createArt extends React.Component {
                                       this.setState({uploadData: data})
                                     }} rows={4}></Input.TextArea>
                                     <Upload
-                                      action="https://www.mocky.io/v2/5cc8019d300000980a055e76"
                                       listType="picture"
                                       accept="png"
                                       defaultFileList={item.list}
                                       beforeUpload = {(file, fileList) => {
                                         return new Promise((resolve, reject) => {
                                           const isLt2M = file.size / 1024 / 1024 <=2//图片大小不超过2MB
-                                          if (item.list.find(todo => todo.name === file.name.split('.')[0]) !== undefined) {
+                                          if (item.list.find(todo => todo.name === file.name) !== undefined) {
                                             message.error(json[value.lan].error6)
                                             return reject(false)
                                           }
-                                          return resolve()
+                                          return resolve(file)
                                         });
+                                      }}
+                                      customRequest = {(v) => {
+                                        getBase64(v.file, data => {
+                                          ipfsAdd(Buffer.from(data))
+                                          .then(res => {
+                                            v.onSuccess(res[0], v.file)
+                                          })
+                                          .catch(res => {
+                                            v.onError(res[0], v.file)
+                                          })
+                                        })
                                       }}
                                       onChange={(v) => {this.handleChange(v, item)}}
                                     >
@@ -281,11 +388,12 @@ export  class createArt extends React.Component {
                       <div className='step2Content'>
                         <div className='canvasBox' style = {{
                           width: '400px',
+                          overflow: 'hidden',
                           height: 400 * (this.state.uploadData.height/this.state.uploadData.width) + 'px'
                         }}>
                           {
                             this.state.uploadData.layers.map(item => (
-                              <img src={item.list[item.showIndex].url} key={item.name} alt=""/>
+                              <img src={item.list[item.showIndex].thumbUrl} key={item.name} alt=""/>
                             ))
                           }
                         </div>
@@ -296,7 +404,7 @@ export  class createArt extends React.Component {
                                 <div className='imgList'>
                                   {
                                     item.list.map((todo, _index) => (
-                                      <img className={_index === item.showIndex ?'is':''} src={todo.url} key={_index}  onClick={() => {
+                                      <img className={_index === item.showIndex ?'is':''} src={todo.thumbUrl} key={_index}  onClick={() => {
                                         item.showIndex = _index
                                         this.setState({uploadData: {...this.state.uploadData}})
                                       }}/>
@@ -313,46 +421,55 @@ export  class createArt extends React.Component {
                   }
                   {
                     this.state.current === 2 && (
+                    <Spin tip={this.state.loadingM} spinning ={this.state.loading} size="large">
                       <div className='step2Content step3Content'>
-                      <div className='canvasBox' style = {{
-                        width: '400px',
-                        height: 400 * (this.state.uploadData.height/this.state.uploadData.width) + 'px'
-                      }}>
-                        {
-                          this.state.uploadData.layers.map(item => (
-                            <img src={item.list[item.showIndex].url} key={item.name} alt=""/>
-                          ))
-                        }
-                        <Button>{json[value.lan].step3}</Button>
+                        <Button disabled={this.state.canvasCoin} onClick={() => this.COINS('')} className='step3Canvas'>
+                          {json[value.lan].step3}
+                          {this.state.canvasCoin && <CheckOutlined />}
+                        </Button>
+                        <div className='canvasBox' style = {{
+                          width: '400px',
+                          overflow: 'hidden',
+                          height: 400 * (this.state.uploadData.height/this.state.uploadData.width) + 'px'
+                        }}>
+                          {
+                            this.state.uploadData.layers.map(item => (
+                              <img src={item.list[item.showIndex].thumbUrl} key={item.name} alt=""/>
+                            ))
+                          }
+                        </div>
+                        <Collapse>
+                          {
+                            this.state.uploadData.layers.map((item, index) => (
+                              <Panel header={item.name || `${json[value.lan].layer}${index + 1}`} key={index}>
+                                <div className='imgList'>
+                                  {
+                                    item.list.map((todo, _index) => (
+                                      <img className={_index === item.showIndex ? 'is' : ''} src={todo.thumbUrl} key={_index}  onClick={() => {
+                                        item.showIndex = _index
+                                        this.setState({uploadData: {...this.state.uploadData}})
+                                      }}/>
+                                    ))
+                                  }
+                                  <div className='clear'></div>
+                                </div>
+                                <div className='step3'>
+                                  <Button disabled={!this.state.canvasCoin || this.state.coins.indexOf(index) > -1} onClick={() =>this.COINS2(index)}>
+                                    {json[value.lan].step3}
+                                    {this.state.coins.indexOf(index) > -1 && <CheckOutlined />}
+                                  </Button>
+                                </div>
+                              </Panel>
+                            ))
+                          }
+                        </Collapse>
                       </div>
-                      <Collapse>
-                        {
-                          this.state.uploadData.layers.map((item, index) => (
-                            <Panel header={item.name || `${json[value.lan].layer}${index + 1}`} key={index}>
-                              <div className='imgList'>
-                                {
-                                  item.list.map((todo, _index) => (
-                                    <img className={_index === item.showIndex ? 'is' : ''} src={todo.url} key={_index}  onClick={() => {
-                                      item.showIndex = _index
-                                      this.setState({uploadData: {...this.state.uploadData}})
-                                    }}/>
-                                  ))
-                                }
-                                <div className='clear'></div>
-                              </div>
-                              <div className='step3'>
-                                <Button>{json[value.lan].step3}</Button>
-                              </div>
-                            </Panel>
-                          ))
-                        }
-                      </Collapse>
-                    </div>
+                    </Spin>
                     )
                   }
                 </div>
                 <div className='nextButton'> 
-                  <Button onClick={() => {prev(value.lan)}} disabled={this.state.current === 0}>
+                  <Button onClick={() => {prev(value.lan)}} disabled={this.state.current === 0 || this.state.canvasCoin}>
                     {json[value.lan].prev}
                   </Button>
                   {
@@ -361,8 +478,8 @@ export  class createArt extends React.Component {
                         {json[value.lan].next}
                       </Button>
                     ) : (
-                      <Button>
-                        <Link to='/priceSet'>{json[value.lan].step4}</Link>
+                      <Button onClick={() => {window.localStorage.uploadData = null}} disabled={!this.state.coinEnd}>
+                        <Link  to={`/priceSet/${this.state.uploadData.tokenId}`}>{json[value.lan].step4}</Link>
                         
                       </Button>
                     )
@@ -373,7 +490,8 @@ export  class createArt extends React.Component {
             </div>
           )
         }
-      </Consumer>
+      </ThemeContext.Consumer>
     )
   }
 }
+

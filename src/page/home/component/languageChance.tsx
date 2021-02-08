@@ -1,13 +1,13 @@
 import React from 'react';
 import { Menu, Dropdown } from 'antd';
 import { DownOutlined } from '@ant-design/icons';
-import { Consumer } from '../../../index';
+import { ThemeContext } from '../../../index';
 const lans = require('@/utils/language.json');
 
 export class LanChance extends React.Component {
   render() {
     const menu = (
-      <Consumer>
+      <ThemeContext.Consumer>
         {(value) => (
           <Menu>
             {lans.map((item) => (
@@ -23,10 +23,10 @@ export class LanChance extends React.Component {
             ))}
           </Menu>
         )}
-      </Consumer>
+      </ThemeContext.Consumer>
     );
     return (
-      <Consumer>
+      <ThemeContext.Consumer>
         {(value) => (
           <Dropdown overlay={menu}>
             <a
@@ -38,7 +38,7 @@ export class LanChance extends React.Component {
             </a>
           </Dropdown>
         )}
-      </Consumer>
+      </ThemeContext.Consumer>
     );
   }
 }

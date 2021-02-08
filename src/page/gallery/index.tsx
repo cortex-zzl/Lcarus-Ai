@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import {  Button, Menu, Dropdown, Pagination, Spin } from 'antd';
-import { Consumer } from '../../index';
+import { ThemeContext } from '../../index';
 import { EditOutlined, DownOutlined, HeartOutlined } from '@ant-design/icons';
 const json = require('./lan.json');
 import { Link } from 'react-router-dom';
+import { web3Object } from '../../interface/contract.js'
+import {ipfsGet} from '../../fetch/ipfs.js'
 import './gallery.less';
+import moment from 'moment';
 
 
 function getday(s:number) {
@@ -24,23 +27,32 @@ function gets(s:number) {
   return day > 9 ? day : '0' + day
 }
 
+const MockImg = 'https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=1896238784,1495930168&fm=26&gp=0.jpg'
+
 class Listshow extends React.Component {
+  static contextType = ThemeContext;
   constructor(props: object) {
     super(props);
-    this.getUserinfo2 = this.getUserinfo2.bind(this);
+    this.getArtList = this.getArtList.bind(this);
+    this.sortClick = this.sortClick.bind(this);
+    this.setTypeList = this.setTypeList.bind(this);
     this.onChange = this.onChange.bind(this);
     this.state = {
       auction: 0, // 0:全部，1拍卖中，2即将拍卖，3：售卖（一口价的物品， 4：不卖的物品
-      imgType: 0, // 0: 全部， 1主画布， 2图层
+      imgType: 0, // 0: 全部， -1主画布， -2图层
       collation: 0, // 搜索结果排序规则
       list: [],
       total: 1,
       sort: '',
-      loading: false
+      allList: [], // 所有的艺术品
+      typeList: [], // allList按照当前筛选条件筛选的所有艺术品，主要是分页保存数据用
+      loading: false,
+      current: 1,
+      publicAddress: '0x0b18c352E7fE19EfEa86A7e545fCE0D30951Af6B' // 这个页面不需要登录，但是合约需要地址
     }
   }
   componentDidMount(){
-    this.getUserinfo2(1)
+    this.getArtList()
   }
   state: {
     auction: number,
@@ -49,70 +61,171 @@ class Listshow extends React.Component {
     list: Array<any>,
     total: number,
     sort:string,
-    loading: boolean
+    loading: boolean,
+    publicAddress: string,
+    allList: Array<any>,
+    typeList: Array<any>,
+    current: number,
   }
   onChange (pageNumber) {
-    this.getUserinfo2(pageNumber)
-  }
-  // 画廊列表
-  getUserinfo2(pagenum: number) {
-    this.setState({loading: true})
-    const searchData = { 
-      auction: this.state.auction,
-      collation: this.state.collation,
-      pages: 12,
-      pagenum: pagenum 
-    }
-    const res = [1,2,3,4,5,6,7,8,9,10,11,12].map(item => {
-      return {
-        img:
-          'https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=1896238784,1495930168&fm=26&gp=0.jpg',
-        name: '名称',
-        collection: false,
-        look: '125',
-        parice: '0.6ETH',
-        token: Math.ceil(Math.random() * 10000 ),
-        hasAddress: '0x1212121212121212121212',
-        artistAddress: '0x1313131313131313131313',
-        countdown: 126400000,
-        auction: Math.ceil(Math.random() * 4),
-        priceType: '1'
+    this.setState(
+      {
+        list: this.state.typeList.slice((pageNumber - 1) * 12, pageNumber * 12)
       }
-    })
-    setTimeout(() => {
-      this.setState(
-        {
-          list: res,
-          total: 12,
-          loading: false
-        }
-      )
-    }, 1000)
+    )
+  }
+  // 从所有的艺术品里筛选出列表typeList
+  setTypeList(num) {
+    this.setState({loading: true})
+    // 拍卖方式
+    if(num > 0) {
+      let typeList = this.state.allList
+      if (this.state.imgType != 0) {
+        typeList = typeList.filter(item => item.imgType == this.state.imgType)
+      }
+      if (num == this.state.auction) {
+        num = 0
+      } else {
+        typeList = typeList.filter(item => item.auction == num)
+      }
+      this.setState({
+        typeList: typeList,
+        list: typeList.slice(0, 12),
+        current: 1,
+        loading: false,
+        auction: num
+      })
+    } else {
+      let typeList = this.state.allList
+      if (this.state.auction != 0) {
+        typeList = typeList.filter(item => item.auction == this.state.auction)
+      }
+      if (num == this.state.imgType) {
+        num = 0
+      } else {
+        typeList = typeList.filter(item => item.imgType == num)
+      }
+      this.setState({
+        typeList: typeList,
+        list: typeList.slice(0, 12),
+        current: 1,
+        loading: false,
+        imgType: num
+      })
+    }
+  }
+  async getArtDataFromIpfs(token) {
+    try {
+      const hash = await web3Object.managerContract.methods.tokenURI(token).call({from: this.state.publicAddress, gas: 1000000})
+      const price = await web3Object.managerContract.methods.sellingState(token).call({from: this.state.publicAddress, gas: 1000000})
+      const hasAddress = await web3Object.managerContract.methods.ownerOf(token).call({from: this.state.publicAddress, gas: 1000000})
+      const artistAddress = await web3Object.managerContract.methods.uniqueTokenCreators(token, 0).call({from: this.state.publicAddress, gas: 1000000})
+      price.tokenId = token
+      price.hasAddress = hasAddress
+      price.artistAddress = artistAddress
+      let content = await ipfsGet(hash)
+      content = JSON.parse(content[0].content.toString())
+      return Object.assign(content, price)
+    } catch {
+      return { 
+        resSS: 'error'
+      }
+    }
     
   }
-  render() {
-    const sortClick = (key) => {
-      this.setState({sort:key.key})
-      this.getUserinfo2(1)
+  // 初次加载所有的艺术品信息，没错，没有分页。。。
+  async getArtList() {
+    this.setState({loading: true})
+    let lastToken = await web3Object.managerContract.methods.expectedTokenSupply().call({from: this.state.publicAddress, gas: 1000000})
+    // lastToken是最后的艺术品token，因为token是从小到大分配的
+    let list =  []
+    for (let i = 0; i < parseInt(lastToken); i++) {
+      list[i] = i + 1
     }
+    let layers = [] 
+    for (let i = 0; i < list.length; i ++) {
+      const token = list[i]
+      // 拿到所有的画布列表
+      layers[i] = await this.getArtDataFromIpfs(token)
+      // 如果是layer，从ipfs拿图片地址
+      if (layers[i].list && layers[i].list.length > 0) {
+        let content = await ipfsGet(layers[i].list[0])
+        content = content[0].content.toString()
+        layers[i].list[0] = content
+      }
+    }
+    // 有些token可能申请了，但是没用铸币，是空的，筛选掉
+    layers = layers.filter(item=> item.resSS != 'error')
+  
+    const deteNow = moment().unix()
+    const res = layers.map(item => {
+      return {
+        imgType: item.layers ? -1 : -2, //-1画布  -2 图层
+        img : item.layers ? MockImg : item.list[0],
+        name: item.canvasName || item.name,
+        priceType: item.reservePrice != '0' ? '2' : (item.buyPrice == '0' ? '3' : '1'), // 1一口价，2拍卖，3不卖
+        auction: item.reservePrice != '0' ? (deteNow > item.auctionStartTime ? '1' : '2') : (item.buyPrice == '0' ? '4' : '3'),
+        countdown: deteNow > item.auctionStartTime ? (item.auctionEndTime - deteNow) * 1000 : (deteNow - item.auctionStartTime) * 1000 ,
+        price: (item.reservePrice != '0' ?  item.reservePrice : item.buyPrice) + ' CTXC',
+        token: item.tokenId,
+        hasAddress: item.hasAddress,
+        artistAddress: item.artistAddress,
+        // 以后做
+        collection: false,
+        look: '125'
+      }
+    })
+    this.setState(
+      {
+        allList: res,
+        typeList: res,
+        list: res.slice(0, 12),
+        total: res.length,
+        loading: false
+      }
+    )
+    
+  }
+  sortClick (obj) {
+    this.setState({loading: true})
+    if (obj.key == '0') {
+      this.state.typeList.sort((x, y) => x.countdown - y.countdown)
+    }
+    if (obj.key == '1') {
+      this.state.typeList.sort((x, y) => y.countdown - x.countdown)
+    }
+    if (obj.key == '2') {
+      this.state.typeList.sort((x, y) => parseInt(x.price) - parseInt(y.price))
+    }
+    if (obj.key == '3') {
+      this.state.typeList.sort((x, y) => parseInt(y.price) - parseInt(x.price))
+    }
+    console.log(this.state.typeList)
+    this.setState({
+      loading: false,
+      typeList: [...this.state.typeList],
+      list: this.state.typeList.slice(this.state.current * 12 - 12, this.state.current * 12)
+    })
+  }
+  render() {
     const menu = (
-      <Consumer>
+      <ThemeContext.Consumer>
         {
           value => (
-            <Menu onClick = {sortClick}>
+            <Menu onClick = {this.sortClick}>
               {
-                ['timeup', 'timedown', 'priceup', 'pricedown'].map(item => (
-                  <Menu.Item key={item}>{json[value.lan][item]}</Menu.Item>
+                ['timeup', 'timedown', 'priceup', 'pricedown'].map((item,index) => (
+                  <Menu.Item key={index}>{json[value.lan][item]}</Menu.Item>
                 ))
-              }\
+              }
             </Menu>
           )
         }
-      </Consumer>
+      </ThemeContext.Consumer>
       
     )
     return (
-      <Consumer>
+      <ThemeContext.Consumer>
         {(value) => (
           <div className='box'>
             <div className='search'>
@@ -120,24 +233,24 @@ class Listshow extends React.Component {
               <div className='searchButton'>
                 <div className='left'>
                   <Button className= {this.state.auction === 1 ? 'is' : ''} onClick={() => {
-                    this.setState({auction: 1}); this.getUserinfo2(1)
+                    this.setTypeList(1)
                   }}>{json[value.lan].auction1}</Button>
                   <Button className= {this.state.auction === 2 ? 'is' : ''} onClick={() => {
-                    this.setState({auction: 2}); this.getUserinfo2(1)
+                    this.setTypeList(2)
                   }}>{json[value.lan].auction2}</Button>
                   <Button className= {this.state.auction === 3 ? 'is' : ''} onClick={() => {
-                    this.setState({auction: 3}); this.getUserinfo2(1)
+                    this.setTypeList(3)
                   }}>{json[value.lan].auction3}</Button>
                   <Button className= {this.state.auction === 4 ? 'is' : ''} onClick={() => {
-                    this.setState({auction: 4}); this.getUserinfo2(1)
+                    this.setTypeList(4)
                   }}>{json[value.lan].auction4}</Button>
                 </div>
                 <div className='center'>
-                  <Button className= {this.state.imgType === 1 ? 'is' : ''} onClick={() => {
-                    this.setState({imgType: 1}); this.getUserinfo2(1)
+                  <Button className= {this.state.imgType === -1 ? 'is' : ''} onClick={() => {
+                    this.setTypeList(-1)
                   }}>{json[value.lan].imgType1}</Button>
-                  <Button className= {this.state.imgType === 2 ? 'is' : ''} onClick={() => {
-                    this.setState({imgType: 2}); this.getUserinfo2(1)
+                  <Button className= {this.state.imgType === -2 ? 'is' : ''} onClick={() => {
+                    this.setTypeList(-2)
                   }}>{json[value.lan].imgType2}</Button>
                 </div>
                 <div className='right'>
@@ -155,16 +268,21 @@ class Listshow extends React.Component {
                   this.state.list.map((item,index) => (
                     <div className={`list auction${item.auction}`} key = {index}>
 
-                      <Link to={`/auction/${item.artistAddress}`}>
+                      <Link to={`/auction/${item.token}`}>
                         <img src={item.img} className='flur' alt=""  />
                       </Link>
                       <span className={`type ${value.lan}`}>{json[value.lan].show[item.auction - 1]}</span>
                       <h3>
                         <span className="name">{item.name}</span>
-                        <span>
-                          <span className="pricename">{json[value.lan][`price${item.priceType}`]}</span>
-                          <span className="price">{item.parice}</span>
-                        </span>
+                        {
+                          // 不卖的不展示售价
+                          item.priceType != '3' &&
+                          <span>
+                            <span className="pricename">{json[value.lan][`price${item.priceType}`]}</span>
+                            <span className="price">{item.price}</span>
+                          </span>
+                        }
+                        
                       </h3>
                       
                       <h3 className='hasor'>
@@ -184,7 +302,7 @@ class Listshow extends React.Component {
                         />
                       </h3>
                       {
-                        (item.auction === 1 || item.auction === 2) &&
+                        (item.auction == 1 || item.auction == 2) &&
                         <p style = {{backgroundColor: ['#57b27a', '#eb973f'][item.auction - 1]}}>
                           {json[value.lan].countdown}:  &nbsp;
                           {getday(item.countdown)}  
@@ -201,14 +319,15 @@ class Listshow extends React.Component {
                     </div>
                   ))
                 }
+                <div className='clear'></div>
               </div>
             </Spin>
 
-            <Pagination simple defaultPageSize={12} defaultCurrent={1} total={this.state.total} onChange={this.onChange} />
+            <Pagination simple defaultPageSize={12} current= {this.state.current} defaultCurrent={1} total={this.state.total} onChange={this.onChange} />
           </div>
             
         )}
-      </Consumer>
+      </ThemeContext.Consumer>
     );
     
   }

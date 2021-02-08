@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { Input, Button, Progress, notification } from 'antd';
-import { Consumer } from '../../index';
+import { ThemeContext } from '../../index';
 import { UpOutlined, DownOutlined, LoginOutlined } from '@ant-design/icons';
-import { uninstall, unlogin } from '../../notice/notice';
 const json = require('./lan.json');
 const list = require('./galleries.json');
 const artist = require('./artist.json');
@@ -15,7 +14,7 @@ declare const window: any;
 // 介绍框
 function Introduce() {
   return (
-    <Consumer>
+    <ThemeContext.Consumer>
       {(value) => (
           <div id="homeIntroduce">
             <div className="dis">
@@ -33,7 +32,7 @@ function Introduce() {
             </div>
           </div>
       )}
-    </Consumer>
+    </ThemeContext.Consumer>
   );
 }
 // 画廊
@@ -67,7 +66,7 @@ function Carouselpic() {
     setNum2(0);
   }
   return (
-    <Consumer>
+    <ThemeContext.Consumer>
       {(value) => (
         <div id="Carouselpic">
           <h2>{json[value.lan].titie}</h2>
@@ -134,7 +133,7 @@ function Carouselpic() {
           </div>
         </div>
       )}
-    </Consumer>
+    </ThemeContext.Consumer>
   );
 }
 // 艺术家介绍
@@ -168,7 +167,7 @@ function ArtistList() {
     setCount(0);
   }
   return (
-    <Consumer>
+    <ThemeContext.Consumer>
       {(value) => (
         <div id="ArtistList">
           <h2>{json[value.lan].artist}</h2>
@@ -256,14 +255,14 @@ function ArtistList() {
           </div> */}
         </div>
       )}
-    </Consumer>
+    </ThemeContext.Consumer>
   );
 }
 // 加入我们
 
 function Join() {
   return (
-    <Consumer>
+    <ThemeContext.Consumer>
       {(value) => (
           <div id="joinus">
             <h2>{json[value.lan].join}</h2>
@@ -272,7 +271,7 @@ function Join() {
             </p>
           </div>
       )}
-    </Consumer>
+    </ThemeContext.Consumer>
   );
 }
 export class Home extends React.Component {
@@ -321,17 +320,7 @@ export class Home extends React.Component {
       arr[2].style.height = h;
       arr[3].style.height = ` ${h - 400}px`;
     }
-    // 检测钱包相关信息,钱包初始化需要时间
-    setTimeout(() => {
-      if (!window.ctxWeb3) {
-        uninstall();
-        return;
-      }
-      if (!window.ctxWeb3.eth.defaultAccount) {
-        unlogin();
-        return;
-      }
-    }, 1000)
+    
   }
   componentWillUnmount() {
     document.querySelector('body').style.overflow = '';

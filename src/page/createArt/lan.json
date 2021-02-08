@@ -19,7 +19,8 @@
     "error4" : "每个图层至少要有一幅图片",
     "error5" : "每个图层都需要名称",
     "error6" : "本图层中，该图片已存在",
-    "error7" : "确定离开本页面吗，您的数据将不会被保存"
+    "error7" : "确定离开本页面吗，您的数据将不会被保存",
+    "error8" : "用户没有创建艺术品的权限，请先申请"
   },
   "en": {
     "upload": "Uploading artwork",
@@ -39,9 +40,10 @@
     "error2" : "Please enter the canvas size",
     "error3" : "The canvas should have at least one layer",
     "error4" : "Each layer should have at least one image",
-    "error5" : "You need add name for each layer",
-    "error6" : "The image has already existed in this layer",
-    "error7" : "Are you sure to leave this page? Your data will not be saved"
+    "error5" : "You need a name for each layer",
+    "error6" : "In this layer, the image already exists",
+    "error7" : "Are you sure to leave this page? Your data will not be saved",
+    "error8" : "The user does not have the permission of the artwork in front of the window. Please apply first"
   },
   "hn": {
     "upload": "예술품 업로드",
@@ -63,6 +65,7 @@
     "error4" : "하나의 그림처럼 보이게 합니다.",
     "error5" : "하나의 레이어만큼 이름이 필요합니다.",
     "error6" : "해당 레이어에 이미 존재합니다",
-    "error7" : "이 페이지에서 벗어나시겠습니까? 현재 데이터는 저장되지 않습니다"
+    "error7" : "이 페이지에서 벗어나시겠습니까? 현재 데이터는 저장되지 않습니다",
+    "error8" : "사용자가 창전 예술품의 권한이 없으니, 먼저 신청하십시오"
   }
 }

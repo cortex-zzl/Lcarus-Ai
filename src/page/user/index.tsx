@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Tabs, Button, Progress, message } from 'antd';
 import {Link} from 'react-router-dom'
-import { Consumer } from '../../index';
+import { ThemeContext } from '../../index';
 import { EditOutlined } from '@ant-design/icons';
 const json = require('./lan.json');
 import './user.less';
@@ -9,6 +9,7 @@ import { Content } from 'antd/lib/layout/layout';
 const { TabPane } = Tabs;
 import { ListTypeshow, TradingList } from './tabsDom';
 import { API } from '../../fetch/fetch.js';
+import {ipfsAdd, ipfsGet} from '../../fetch/ipfs.js'
 
 declare const window: any;
 
@@ -23,7 +24,7 @@ class Listshow extends React.Component {
   render() {
     console.log('render');
     return (
-      <Consumer>
+      <ThemeContext.Consumer>
         {(value) => (
             <div className="bottomBox">
               <div className="bottomContent">
@@ -31,10 +32,10 @@ class Listshow extends React.Component {
                   {new Array(2,3,5,4).map((item,index) => (
                     <TabPane tab={json[value.lan][`list${item}`]} key={item}>
                       {
-                        index < 3 && <ListTypeshow address={this.props.addresss}></ListTypeshow>
+                        index < 3 && <ListTypeshow></ListTypeshow>
                       }
                       {
-                        index == 3 && <TradingList address={this.props.addresss}></TradingList>
+                        index == 3 && <TradingList></TradingList>
                       }
                     </TabPane>
                     ))
@@ -43,7 +44,7 @@ class Listshow extends React.Component {
               </div>
             </div>
         )}
-      </Consumer>
+      </ThemeContext.Consumer>
     );
     
   }
@@ -51,6 +52,7 @@ class Listshow extends React.Component {
 
 // 上半部分用户信息
 class Info extends React.Component {
+  static contextType = ThemeContext;
   constructor(props: any) {
     super(props);
 
@@ -59,7 +61,8 @@ class Info extends React.Component {
         img: 'https://ss3.bdstatic.com/70cFv8Sh_Q1YnxGkpoWK1HF6hhy/it/u=2070453827,1163403148&fm=26&gp=0.jpg',
         name: '',
         address: '',
-        introduce: ''
+        introduce: '',
+        imgHash: ''
       }
     };
   }
@@ -77,10 +80,20 @@ class Info extends React.Component {
           ...res
         }
       })
+      getImgUrl()
     }).catch(res => {
       message.error('error')
       window.history.go(-1);
     })
+    async function getImgUrl () {
+      if (_this.state.user.imgHash) {
+        const imgConetent = await ipfsGet(_this.state.user.imgHash)
+        _this.setState ( {user: {
+          ..._this.state.user,
+          img: imgConetent[0].content.toString()
+        }})
+      }
+    }
   }
   state: {
     user: {
@@ -88,15 +101,16 @@ class Info extends React.Component {
       name: string;
       address: string;
       introduce: string;
+      imgHash: string
     };
   }
   render() {
     let is =  false
-    if (window.ctxWeb3 && window.ctxWeb3.eth.defaultAccount && window.ctxWeb3.eth.defaultAccount == this.state.user.address){
+    if (this.context.address.toUpperCase() == this.props.userid.toUpperCase()){
       is = true
     }
     return (
-      <Consumer>
+      <ThemeContext.Consumer>
         {  value => 
             <div className="userinfoBox">
               <div className="userinfo">
@@ -146,7 +160,7 @@ class Info extends React.Component {
               </div>
           </div>
         }
-      </Consumer>
+      </ThemeContext.Consumer>
     );
   }
 }
