@@ -16,16 +16,16 @@
   "en": {
     "canvas": "canvas",
     "price": "Art Pricing",
-    "type1": "fixed price",
+    "type1": "instant sale price",
     "type2": "auction",
-    "type3": "Don't sell",
-    "ok": "submit",
-    "price1": "Opening bid",
-    "time1": "start time",
-    "time2": "The duration of the",
-    "price2" : "Floor price",
+    "type3": "not for sell",
+    "ok": "confirm",
+    "price1": "starting price",
+    "time1": "starting time",
+    "time2": "bidding duration",
+    "price2" : "reserve price",
     "day" : "day",
-    "dis" : "Your works will be collected by you and can be viewed in the collection list of your personal center"
+    "dis" : "Your works will be collected by you and can be viewed in the collection list of your personal page"
   },
   "hn": {
     "canvas": "캔버스",
