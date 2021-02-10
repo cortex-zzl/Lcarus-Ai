@@ -1,7 +1,7 @@
 
 
 const ipfsAPI = require('ipfs-api');
-const ipfs = ipfsAPI({host: '127.0.0.1', port: '5001', protocol: 'http'});
+const ipfs = ipfsAPI(window.ipfsConfig);
 const descBuffer = Buffer.from('213123', 'utf-8');
 
 export function ipfsAdd(file) {

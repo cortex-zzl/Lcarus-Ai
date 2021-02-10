@@ -92,7 +92,7 @@ export  class priceSet extends React.Component {
   changePrice(data, num){
     const obj = [
       data.tokenId,
-      data.buyPrice,
+      data.buyPrice * window.defaultUnit, // 1ctxc = 10的18次方个基本单位
       '0',
       '0',
       '0'
@@ -100,7 +100,7 @@ export  class priceSet extends React.Component {
     if (num == 2) {
       obj[2] = data.auctionStartTime
       obj[3] = data.auctionEndTime
-      obj[4] = data.reservePrice
+      obj[4] = data.reservePrice * window.defaultUnit
     }
     if (num == 3) {
       obj[1] = '0'

@@ -3,6 +3,7 @@ import {  Button, Menu, Dropdown, Pagination, Spin,  Table } from 'antd';
 import { ThemeContext } from '../../index';
 import { EditOutlined, DownOutlined, HeartOutlined } from '@ant-design/icons';
 const json = require('../gallery/lan.json');
+const json2 = require('./lan.json');
 import { Link } from 'react-router-dom';
 import { web3Object } from '../../interface/contract.js'
 import {ipfsGet} from '../../fetch/ipfs.js'
@@ -27,13 +28,12 @@ function gets(s:number) {
   return day > 9 ? day : '0' + day
 }
 
-const MockImg = 'https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=1896238784,1495930168&fm=26&gp=0.jpg'
+
 
 export class ListTypeshow extends React.Component {
   static contextType = ThemeContext;
   constructor(props: object) {
     super(props);
-    this.getArtList = this.getArtList.bind(this);
     this.sortClick = this.sortClick.bind(this);
     this.setTypeList = this.setTypeList.bind(this);
     this.onChange = this.onChange.bind(this);
@@ -41,18 +41,16 @@ export class ListTypeshow extends React.Component {
       auction: 0, // 0:全部，1拍卖中，2即将拍卖，3：售卖（一口价的物品， 4：不卖的物品
       imgType: 0, // 0: 全部， -1主画布， -2图层
       collation: 0, // 搜索结果排序规则
-      list: [],
+      list: this.props.useList,
       total: 1,
       sort: '',
-      allList: [], // 所有的艺术品
+      allList: this.props.useList, // 所有的艺术品
       typeList: [], // allList按照当前筛选条件筛选的所有艺术品，主要是分页保存数据用
       loading: false,
-      current: 1,
-      publicAddress: '0x0b18c352E7fE19EfEa86A7e545fCE0D30951Af6B' // 这个页面不需要登录，但是合约需要地址
+      current: 1
     }
   }
   componentDidMount(){
-    this.getArtList()
   }
   state: {
     auction: number,
@@ -62,15 +60,18 @@ export class ListTypeshow extends React.Component {
     total: number,
     sort:string,
     loading: boolean,
-    publicAddress: string,
     allList: Array<any>,
     typeList: Array<any>,
     current: number,
   }
+  props: {
+    useList: Array<any>
+  }
   onChange (pageNumber) {
     this.setState(
       {
-        list: this.state.typeList.slice((pageNumber - 1) * 12, pageNumber * 12)
+        list: this.state.typeList.slice((pageNumber - 1) * 12, pageNumber * 12),
+        current: pageNumber
       }
     )
   }
@@ -113,78 +114,6 @@ export class ListTypeshow extends React.Component {
         imgType: num
       })
     }
-  }
-  async getArtDataFromIpfs(token) {
-    try {
-      const hash = await web3Object.managerContract.methods.tokenURI(token).call({from: this.state.publicAddress, gas: 1000000})
-      const price = await web3Object.managerContract.methods.sellingState(token).call({from: this.state.publicAddress, gas: 1000000})
-      const hasAddress = await web3Object.managerContract.methods.ownerOf(token).call({from: this.state.publicAddress, gas: 1000000})
-      const artistAddress = await web3Object.managerContract.methods.uniqueTokenCreators(token, 0).call({from: this.state.publicAddress, gas: 1000000})
-      price.tokenId = token
-      price.hasAddress = hasAddress
-      price.artistAddress = artistAddress
-      let content = await ipfsGet(hash)
-      content = JSON.parse(content[0].content.toString())
-      return Object.assign(content, price)
-    } catch {
-      return { 
-        resSS: 'error'
-      }
-    }
-    
-  }
-  // 初次加载所有的艺术品信息，没错，没有分页。。。
-  async getArtList() {
-    this.setState({loading: true})
-    let lastToken = await web3Object.managerContract.methods.expectedTokenSupply().call({from: this.state.publicAddress, gas: 1000000})
-    // lastToken是最后的艺术品token，因为token是从小到大分配的
-    let list =  []
-    for (let i = 0; i < parseInt(lastToken); i++) {
-      list[i] = i + 1
-    }
-    let layers = [] 
-    for (let i = 0; i < list.length; i ++) {
-      const token = list[i]
-      // 拿到所有的画布列表
-      layers[i] = await this.getArtDataFromIpfs(token)
-      // 如果是layer，从ipfs拿图片地址
-      if (layers[i].list && layers[i].list.length > 0) {
-        let content = await ipfsGet(layers[i].list[0])
-        content = content[0].content.toString()
-        layers[i].list[0] = content
-      }
-    }
-    // 有些token可能申请了，但是没用铸币，是空的，筛选掉
-    layers = layers.filter(item=> item.resSS != 'error')
-  
-    const deteNow = moment().unix()
-    const res = layers.map(item => {
-      return {
-        imgType: item.layers ? -1 : -2, //-1画布  -2 图层
-        img : item.layers ? MockImg : item.list[0],
-        name: item.canvasName || item.name,
-        priceType: item.reservePrice != '0' ? '2' : '1',
-        auction: item.reservePrice != '0' ? (deteNow > item.auctionStartTime ? '1' : '2') : (item.buyPrice == '0' ? '4' : '3'),
-        countdown: deteNow > item.auctionStartTime ? (item.auctionEndTime - deteNow) * 1000 : (deteNow - item.auctionStartTime) * 1000 ,
-        price: (item.reservePrice != '0' ?  item.reservePrice : item.buyPrice) + ' CTXC',
-        token: item.tokenId,
-        hasAddress: item.hasAddress,
-        artistAddress: item.artistAddress,
-        // 以后做
-        collection: false,
-        look: '125'
-      }
-    })
-    this.setState(
-      {
-        allList: res,
-        typeList: res,
-        list: res.slice(0, 12),
-        total: res.length,
-        loading: false
-      }
-    )
-    
   }
   sortClick (obj) {
     this.setState({loading: true})
@@ -281,11 +210,11 @@ export class ListTypeshow extends React.Component {
                       <h3 className='hasor'>
                         <span>
                           <Link to={`/user/${item.artistAddress}`}>
-                            <img src={item.img} alt=""/>
+                            <img src={item.artistImgUrl} alt=""/>
                             {json[value.lan].artist}
                           </Link>
                           <Link to={`/user/${item.hasAddress}`}>
-                            <img src={item.img} alt=""/>
+                            <img src={item.hasImgUrl} alt=""/>
                             {json[value.lan].holders}
                           </Link>
                         </span>
@@ -330,35 +259,18 @@ export class ListTypeshow extends React.Component {
 
 
 export  function TradingList (props) {
-  const list = [
-    {
-      name: '事件',
-      price: '1213CTXC',
-      from: '55.36CTXC',
-      to: '55.36CTXC',
-      time: '2020-1-1',
-      tx: '123',
-      key: ''
-    }
-  ]
-  list[0].key = '0';
-  for (let i = 1; i < 8; i++) {
-    list[i] = { ...list[0] };
-    list[i].key = i + '';
-  }
-  
   return (
     <ThemeContext.Consumer>
       {
         value => {
         const columns = [
           {
-            title: json[value.lan].recordName,
+            title: json2[value.lan].recordName,
             ellipsis: true,
             dataIndex: 'name'
           },
           {
-            title: json[value.lan].price,
+            title: json2[value.lan].price,
             ellipsis: true,
             dataIndex: 'price'
           },
@@ -383,7 +295,7 @@ export  function TradingList (props) {
             dataIndex: 'tx'
           }
         ];
-        return <Table dataSource={list} columns={columns} />;
+        return <Table dataSource={props.reacordList} columns={columns} />;
       }}
     </ThemeContext.Consumer>
   );

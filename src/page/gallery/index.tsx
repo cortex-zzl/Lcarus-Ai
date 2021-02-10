@@ -8,7 +8,7 @@ import { web3Object } from '../../interface/contract.js'
 import {ipfsGet} from '../../fetch/ipfs.js'
 import './gallery.less';
 import moment from 'moment';
-
+import { API } from '../../fetch/fetch.js';
 
 function getday(s:number) {
   const day = Math.floor(s / (1000 * 60 * 60 * 24))
@@ -26,8 +26,8 @@ function gets(s:number) {
   const day = Math.floor(s / 1000)
   return day > 9 ? day : '0' + day
 }
-
-const MockImg = 'https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=1896238784,1495930168&fm=26&gp=0.jpg'
+declare const window: any;
+const MockImg = window.defaultImg 
 
 class Listshow extends React.Component {
   static contextType = ThemeContext;
@@ -48,7 +48,7 @@ class Listshow extends React.Component {
       typeList: [], // allList按照当前筛选条件筛选的所有艺术品，主要是分页保存数据用
       loading: false,
       current: 1,
-      publicAddress: '0x0b18c352E7fE19EfEa86A7e545fCE0D30951Af6B' // 这个页面不需要登录，但是合约需要地址
+      publicAddress: window.publicAddress // 这个页面不需要登录，但是合约需要地址
     }
   }
   componentDidMount(){
@@ -70,7 +70,8 @@ class Listshow extends React.Component {
   onChange (pageNumber) {
     this.setState(
       {
-        list: this.state.typeList.slice((pageNumber - 1) * 12, pageNumber * 12)
+        list: this.state.typeList.slice((pageNumber - 1) * 12, pageNumber * 12),
+        current: pageNumber
       }
     )
   }
@@ -116,17 +117,33 @@ class Listshow extends React.Component {
   }
   async getArtDataFromIpfs(token) {
     try {
-      const hash = await web3Object.managerContract.methods.tokenURI(token).call({from: this.state.publicAddress, gas: 1000000})
-      const price = await web3Object.managerContract.methods.sellingState(token).call({from: this.state.publicAddress, gas: 1000000})
-      const hasAddress = await web3Object.managerContract.methods.ownerOf(token).call({from: this.state.publicAddress, gas: 1000000})
-      const artistAddress = await web3Object.managerContract.methods.uniqueTokenCreators(token, 0).call({from: this.state.publicAddress, gas: 1000000})
+      const hash = await web3Object.managerContract.methods.tokenURI(token).call({from: window.publicAddress, gas: 1000000})
+      const price = await web3Object.managerContract.methods.sellingState(token).call({from: window.publicAddress, gas: 1000000})
+      const hasAddress = await web3Object.managerContract.methods.ownerOf(token).call({from: window.publicAddress, gas: 1000000})
+      const hasInfo = await API.getuserInfo(hasAddress)
+      // 设置默认头像
+      price.hasImgUrl = price.artistImgUrl =window.defaultImgT
+      if (hasInfo.imgHash) {
+        const hasImgUrl = await ipfsGet(hasInfo.imgHash)
+        price.hasImgUrl = hasImgUrl[0].content.toString()
+      }
+      const artistAddress = await web3Object.managerContract.methods.uniqueTokenCreators(token, 0).call({from: window.publicAddress, gas: 1000000})
+      const artistInfo = await API.getuserInfo(artistAddress)
+
+      if (artistInfo.imgHash) {
+        const artistImgUrl = await ipfsGet(artistInfo.imgHash)
+        price.artistImgUrl = artistImgUrl[0].content.toString()
+      }
       price.tokenId = token
       price.hasAddress = hasAddress
       price.artistAddress = artistAddress
+      price.hasInfo = hasInfo
+      price.artistInfo = artistInfo
       let content = await ipfsGet(hash)
       content = JSON.parse(content[0].content.toString())
       return Object.assign(content, price)
-    } catch {
+    } catch (error){
+      console.log(error)
       return { 
         resSS: 'error'
       }
@@ -164,12 +181,14 @@ class Listshow extends React.Component {
         img : item.layers ? MockImg : item.list[0],
         name: item.canvasName || item.name,
         priceType: item.reservePrice != '0' ? '2' : (item.buyPrice == '0' ? '3' : '1'), // 1一口价，2拍卖，3不卖
-        auction: item.reservePrice != '0' ? (deteNow > item.auctionStartTime ? '1' : '2') : (item.buyPrice == '0' ? '4' : '3'),
-        countdown: deteNow > item.auctionStartTime ? (item.auctionEndTime - deteNow) * 1000 : (deteNow - item.auctionStartTime) * 1000 ,
+        auction: item.reservePrice != '0' ? (deteNow > item.auctionStartTime ? '1' : '2') : (item.buyPrice == '0' ? '4' : '3'), // 1拍卖中 2未开始拍卖 3一口价  4不卖
+        countdown: deteNow > item.auctionStartTime ? (item.auctionEndTime - deteNow) * 1000 : (item.auctionStartTime - deteNow) * 1000 ,
         price: (item.reservePrice != '0' ?  item.reservePrice : item.buyPrice) + ' CTXC',
         token: item.tokenId,
         hasAddress: item.hasAddress,
         artistAddress: item.artistAddress,
+        hasImgUrl: item.hasImgUrl,
+        artistImgUrl: item.artistImgUrl,
         // 以后做
         collection: false,
         look: '125'
@@ -288,11 +307,11 @@ class Listshow extends React.Component {
                       <h3 className='hasor'>
                         <span>
                           <Link to={`/user/${item.artistAddress}`}>
-                            <img src={item.img} alt=""/>
+                            <img src={item.artistImgUrl} alt=""/>
                             {json[value.lan].artist}
                           </Link>
                           <Link to={`/user/${item.hasAddress}`}>
-                            <img src={item.img} alt=""/>
+                            <img src={item.hasImgUrl} alt=""/>
                             {json[value.lan].holders}
                           </Link>
                         </span>

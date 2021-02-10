@@ -27,9 +27,11 @@
     "login": "用户钱包未登录，请登录后刷新重试",
     "countTime": "倒计时",
     "inAuction": "拍卖中",
+    "outAuction": "拍卖结束",
     "upcomingAuction": "即将拍卖",
     "fixedPrice": "一口价",
-    "Notsale": "非卖品"
+    "Notsale": "非卖品",
+    "confirmation": "确认交易"
 
   },
   "en": {
@@ -60,9 +62,11 @@
     "login": "User is not logged in wallet, please log in and try again",
     "countTime": "countdown",
     "inAuction": "in auction",
+    "outAuction": "The auction ended",
     "upcomingAuction": "upcoming auction",
     "fixedPrice": "list price",
-    "Notsale": "not for sale"
+    "Notsale": "not for sale",
+    "confirmation": "Confirm transaction"
   },
   "hn": {
     "canvas" : "캔버스",
@@ -92,8 +96,10 @@
     "login": "사용자가 지갑에 로그인하지 못했습니다. 로그인하시고 다시 시도해 보십시오.",
     "countTime": "카운트다운",
     "inAuction": "경매중",
+    "outAuction": "경매가 끝나다",
     "upcomingAuction": "당장 경매",
     "fixedPrice": "고정가",
-    "Notsale": "비매품"
+    "Notsale": "비매품",
+    "confirmation": "확인 거래"
   }
 }

@@ -47,7 +47,7 @@ class APP extends React.Component {
       },
       // hasLoginWallet: window.ctxWeb3 && window.ctxWeb3.eth.defaultAccount
       hasLoginWallet: false,
-      address: ''
+      address: null
     };
   }
   state: {
@@ -69,9 +69,11 @@ class APP extends React.Component {
     async function getwallet() {
       if (window.ethereum) {
         const addresss = await window.ethereum.request({ method: 'eth_accounts' })
-        if(!_this.state.hasLoginWallet && addresss[0]) _this.setState({hasLoginWallet: true , address: addresss[0]})
+        if(!_this.state.hasLoginWallet && addresss[0]) _this.setState({hasLoginWallet: true ,address: addresss[0]})
+        if (_this.state.hasLoginWallet && addresss[0].toUpperCase() != _this.state.address.toUpperCase())_this.setState({address: addresss[0]})
+        if (_this.state.hasLoginWallet && !addresss[0])_this.setState({hasLoginWallet: false})
       } else {
-        if (_this.state.hasLoginWallet) _this.setState({hasLoginWallet: false, address: ''})
+        if (_this.state.hasLoginWallet) _this.setState({hasLoginWallet: false})
       }
     }
     // 检测钱包相关信息,钱包初始化需要时间
@@ -93,7 +95,7 @@ class APP extends React.Component {
   render() {
     const {whiteRoutes, perRoutes} =  require('./routeconfig')
     return (
-      <div id="app">
+      <div id="app" key={this.state.address}>
         <ThemeContext.Provider value={this.state}>
           <Router>
             <HEADC></HEADC>

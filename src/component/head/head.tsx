@@ -68,6 +68,7 @@ export class GetUserInfoDom extends React.Component {
     .then(res => {
       _this.setState({
         userInfo: {
+          img: window.defaultImgT,
           ...res
         }
       })

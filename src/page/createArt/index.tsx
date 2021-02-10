@@ -63,7 +63,8 @@ export  class createArt extends React.Component {
       loadingM:'',
       coinEnd: false,
       canvasCoin: false,
-      coins: []
+      coins: [],
+      canvasTokenId: ''
     }
   }
   state: {
@@ -85,12 +86,16 @@ export  class createArt extends React.Component {
     loadingM:string,
     coinEnd: boolean,
     canvasCoin: boolean, // 主画布是否铸币完成
-    coins: Array<number> // 完成铸币的图层下标
+    coins: Array<number>, // 完成铸币的图层下标
+    canvasTokenId: string // 画布的token，
   }
   async COINS(item:any) {
     this.setState({loading: true, loadingM: 'save Canvas'})
     const canvasJson = JSON.stringify({
-      width: this.state.uploadData.width, height: this.state.uploadData.height, canvasName: this.state.uploadData.canvasName,
+      width: this.state.uploadData.width,
+      height: this.state.uploadData.height,
+      canvasName: this.state.uploadData.canvasName,
+      creatTime: new Date(),
       layers: this.state.uploadData.layers.map(item => {
         return {
           name: item.name,
@@ -121,10 +126,12 @@ export  class createArt extends React.Component {
       // const whitelistTokenForCreator = web3Object.managerContract2.methods.func(5).encodeABI()
       sendCoin(whitelistTokenForCreator, address).then(res => {
       this.setState({loadingM: 'Start COINS'})
+      const addressS = this.state.uploadData.layers.map(item => address)
+      console.log(tokenId, ipfsRes[0].hash, addressS)
         web3Object.managerContract.methods.mintArtwork(
-          tokenId, ipfsRes[0].hash, [address]
+          tokenId, ipfsRes[0].hash, addressS
           ).send({from: address})
-          .then(res => {this.setState({loading: false, loadingM: 'End COINS',canvasCoin: true})})
+          .then(res => {this.setState({loading: false, loadingM: 'End COINS',canvasCoin: true, canvasTokenId: tokenId})})
           .catch(err => message.error(JSON.stringify(err)))
       }).catch(err => message.error(JSON.stringify(err)))
     } catch(err) {
@@ -135,12 +142,13 @@ export  class createArt extends React.Component {
   }
   async COINS2(index: number) {
     var  address = this.context.address
-    const layerTokenId = this.state.uploadData.tokenId - 0 + 1
+    const layerTokenId = this.state.uploadData.tokenId - 0 + index + 1
     this.setState({loading: true, loadingM: 'Save Layers Data'})
     const layerJson = JSON.stringify({
       name: this.state.uploadData.layers[index].name,
       introduce: this.state.uploadData.layers[index].introduce,
       layerTokenId,
+      canvasTokenId: this.state.canvasTokenId,
       list: this.state.uploadData.layers[index].list.map(item => {
         return item.response.hash
       })
@@ -155,6 +163,7 @@ export  class createArt extends React.Component {
       -1,
       []
     ]
+    console.log(obj)
     web3Object.managerContract.methods.setupControlToken(...obj).send({from: address})
     .then(res => 
       {
@@ -163,8 +172,7 @@ export  class createArt extends React.Component {
           loading: false,
           loadingM: 'End COINS',
           canvasCoin: true,
-          coins: this.state.coins.concat([index]),
-          tokenId: this.state.uploadData.tokenId + 1,
+          coins: this.state.coins.concat([index])
         })
         if (this.state.coins.length === this.state.uploadData.layers.length) {
           this.setState({coinEnd: true})
