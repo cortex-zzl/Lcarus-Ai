@@ -8,8 +8,10 @@ import {API, uploadAvatar, walletSign, getRecoverid} from '../../fetch/fetch'
 import {ipfsAdd, ipfsGet} from '../../fetch/ipfs.js'
 import moment from 'moment';
 import { web3Object } from '../../interface/contract.js'
+import { sendTransactionInCtxwallet } from './../../interface/sendTransaction.js'
 import './auction.less'
 declare const window: any;
+const Web3Utils = require('web3-utils')
 
 function getday(s:number) {
   const day = Math.floor(s / (1000 * 60 * 60 * 24))
@@ -128,7 +130,7 @@ export  class Auction extends React.Component {
     offerPrice: number,
     isModalVisible: boolean // 出价弹窗
   }
-  offer(messages){
+  async  offer(messages){
     if (!this.context.address) {
       message.error(messages)
       return
@@ -137,19 +139,34 @@ export  class Auction extends React.Component {
       this.setState({isModalVisible: true, offerPrice: Math.max(this.state.info.price + 1, this.state.info.startPrice)})
     }
     if (this.state.info.auction == 3) {
-      web3Object.managerContract.methods.takeBuyPrice(this.state.info.tokenId, -1).send({
-        from: this.context.address,
-        value: this.state.info.price * window.defaultUnit
-      })
-      .then(res => message.success('success'))
-      .catch(err => message.error('error'))
+      if(window.walletModel === 1) {
+        const takeBuyPriceData = web3Object.managerContract.methods.takeBuyPrice(this.state.info.tokenId, -1).encodeABI()
+        let nonce = await web3Object.wallet_web3.eth.getTransactionCount(window.mainAddress, 'pending')
+        sendTransactionInCtxwallet(takeBuyPriceData, this.context.address, this.state.info.price, (err,res) => {
+          if (err != undefined) {
+            message.error('err')
+          }else {
+            message.success('success')
+          }
+        })
+      }
+      if (window.walletModel === 2){
+        web3Object.managerContract.methods.takeBuyPrice(this.state.info.tokenId, -1).send({
+          from: this.context.address,
+          value: this.state.info.price * window.defaultUnit
+        })
+        .then(res => message.success('success'))
+        .catch(err => console.log(err))
+      }
+      
+      
     }
   }
   async getArtDataFromIpfs(token) {
     try {
-      const hash = await web3Object.managerContract.methods.tokenURI(token).call({from: window.publicAddress, gas: 1000000})
-      const price = await web3Object.managerContract.methods.sellingState(token).call({from: window.publicAddress, gas: 1000000})
-      const hasAddress = await web3Object.managerContract.methods.ownerOf(token).call({from: window.publicAddress, gas: 1000000})
+      const hash = await web3Object.managerContract.methods.tokenURI(token).call({gas: 1000000})
+      const price = await web3Object.managerContract.methods.sellingState(token).call({gas: 1000000})
+      const hasAddress = await web3Object.managerContract.methods.ownerOf(token).call({gas: 1000000})
       const hasInfo = await API.getuserInfo(hasAddress)
       // 设置默认头像
       price.hasImgUrl = price.artistImgUrl =window.defaultImgT
@@ -157,7 +174,7 @@ export  class Auction extends React.Component {
         const hasImgUrl = await ipfsGet(hasInfo.imgHash)
         price.hasImgUrl = hasImgUrl[0].content.toString()
       }
-      const artistAddress = await web3Object.managerContract.methods.uniqueTokenCreators(token, 0).call({from: window.publicAddress, gas: 1000000})
+      const artistAddress = await web3Object.managerContract.methods.uniqueTokenCreators(token, 0).call({gas: 1000000})
       const artistInfo = await API.getuserInfo(artistAddress)
 
       if (artistInfo.imgHash) {
@@ -208,7 +225,7 @@ export  class Auction extends React.Component {
     timeGetPriceFn()
     window.getPriceH =  setInterval(timeGetPriceFn, 3000)
     function timeGetPriceFn() {
-      web3Object.managerContract.methods.pendingBids(token).call({from: window.publicAddress, gas: 1000000})
+      web3Object.managerContract.methods.pendingBids(token).call({gas: 1000000})
       .then(res => {
         _this.setState({info: {..._this.state.info, price: res.amount},exists : res.bidder == _this.context.address})
       })
@@ -235,9 +252,15 @@ export  class Auction extends React.Component {
   }
   // 确认交易
   acceptBid() {
-    web3Object.managerContract.methods.acceptBid(this.state.info.tokenId).send({from: this.context.address})
-    .then(res => message.success('success'))
-    .catch(err => message.error('error'))
+    if(window.walletModel === 1) {
+      const takeBuyPriceData = web3Object.managerContract.methods.acceptBid(this.state.info.tokenId).encodeABI()
+      sendTransactionInCtxwallet(takeBuyPriceData, this.context.address, 0, (a,b) => {console.log(a, b)})
+    }
+    if (window.walletModel === 2){
+      web3Object.managerContract.methods.acceptBid(this.state.info.tokenId).send({from: this.context.address})
+      .then(res => message.success('success'))
+      .catch(err => message.error('error'))
+    }
   }
   componentWillUnmount() {
     clearInterval(window.getPriceH)
@@ -263,9 +286,15 @@ export  class Auction extends React.Component {
   }
   // 用户确认出价
   handleOk () {
-    web3Object.managerContract.methods.bid(this.state.info.tokenId).send({from: this.context.address, value: this.state.offerPrice * window.defaultUnit})
-    .then(res => message.success('success'))
-    .catch(err => message.error('error'))
+    if(window.walletModel === 1) {
+      const takeBuyPriceData = web3Object.managerContract.methods.bid(this.state.info.tokenId).encodeABI()
+      sendTransactionInCtxwallet(takeBuyPriceData, this.context.address, this.state.offerPrice * window.defaultUnit, (a,b) => {console.log(a, b)})
+    }
+    if (window.walletModel === 2){
+      web3Object.managerContract.methods.bid(this.state.info.tokenId).send({from: this.context.address, value: this.state.offerPrice * window.defaultUnit})
+      .then(res => message.success('success'))
+      .catch(err => message.error('error'))
+    }
   }
   componentDidMount() {
     this.getInfo(this.props)

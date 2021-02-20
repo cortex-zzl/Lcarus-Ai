@@ -201,10 +201,21 @@ export class ListTypeshow extends React.Component {
                       <span className={`type ${value.lan}`}>{json[value.lan].show[item.auction - 1]}</span>
                       <h3>
                         <span className="name">{item.name}</span>
-                        <span>
-                          <span className="pricename">{json[value.lan][`price${item.priceType}`]}</span>
-                          <span className="price">{item.price}</span>
-                        </span>
+                        {
+                          // 不卖的不展示售价
+                          item.priceType != '3' &&
+                          (
+                            item.auction != '5' ? 
+                            <span>
+                              <span className="pricename">{json[value.lan][`price${item.priceType}`]}</span>
+                              <span className="price">{item.price}</span>
+                            </span>
+                            :
+                            <span>
+                              {json[value.lan].auction5}
+                            </span>
+                          )
+                        }
                       </h3>
                       
                       <h3 className='hasor'>

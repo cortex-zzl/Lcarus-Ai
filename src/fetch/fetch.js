@@ -64,16 +64,17 @@ export const walletSign = (address, data) => {
     hn: '동작 확인'
   }
   return new Promise((resolve, reject) =>
-    // ctxWeb3.personal.sign(
-    //   data,
-    //   address,
-    //   (err, signature) => {
+  {
+    window.walletModel === 1 &&  ctxWeb3.personal.sign(
+      data,
+      address,
+      (err, signature) => {
         
-    //       if (err) return reject(err);
-    //       return resolve({signature });
-    //   }
-    // )
-    ethereum.request({
+          if (err) return reject(err);
+          return resolve({signature });
+      }
+    )
+    window.walletModel === 2 && ethereum.request({
       method: 'personal_sign',
       params: [
         data,
@@ -82,37 +83,25 @@ export const walletSign = (address, data) => {
     }).then(signature => {
       return resolve({signature })
     }).catch(err => reject(err))
+  }
   )
 }
 // 从签名获得recoverid
-export const getRecoverid = (signature, data) => {
-  let lan = window.localStorage.language || 'en'
-  let json = {
-    zn: '请确认操作',
-    en: 'Please confirm the operation.',
-    hn: '동작 확인'
-  }
-  return new Promise((resolve, reject) =>
-  ctxWeb3.personal.ecRecover(
-    data,
-    signature,
-      (err, recoverid) => {
-          if (err) return reject(err);
-          return resolve({recoverid });
-      }
-    )
-  )
-}
-// 上传头像。未完成
-export function uploadAvatar (file) {
-  return new Promise(function(resolve, reject) {
-    const descBuffer = Buffer.from(file, 'utf-8');
-    ipfs.add(descBuffer).then((response) => {
-      console.log(response)
-      resolve(response[0].hash);
-    }).catch((err) => {
-      console.error(err)
-      reject(err);
-    })
-  })
-}
+// export const getRecoverid = (signature, data) => {
+//   let lan = window.localStorage.language || 'en'
+//   let json = {
+//     zn: '请确认操作',
+//     en: 'Please confirm the operation.',
+//     hn: '동작 확인'
+//   }
+//   return new Promise((resolve, reject) =>
+//   ctxWeb3.personal.ecRecover(
+//     data,
+//     signature,
+//       (err, recoverid) => {
+//           if (err) return reject(err);
+//           return resolve({recoverid });
+//       }
+//     )
+//   )
+// }

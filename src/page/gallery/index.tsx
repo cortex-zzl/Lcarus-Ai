@@ -117,9 +117,9 @@ class Listshow extends React.Component {
   }
   async getArtDataFromIpfs(token) {
     try {
-      const hash = await web3Object.managerContract.methods.tokenURI(token).call({from: window.publicAddress, gas: 1000000})
-      const price = await web3Object.managerContract.methods.sellingState(token).call({from: window.publicAddress, gas: 1000000})
-      const hasAddress = await web3Object.managerContract.methods.ownerOf(token).call({from: window.publicAddress, gas: 1000000})
+      const hash = await web3Object.managerContract.methods.tokenURI(token).call({gas: 1000000})
+      const price = await web3Object.managerContract.methods.sellingState(token).call({gas: 1000000})
+      const hasAddress = await web3Object.managerContract.methods.ownerOf(token).call({gas: 1000000})
       const hasInfo = await API.getuserInfo(hasAddress)
       // 设置默认头像
       price.hasImgUrl = price.artistImgUrl =window.defaultImgT
@@ -127,7 +127,7 @@ class Listshow extends React.Component {
         const hasImgUrl = await ipfsGet(hasInfo.imgHash)
         price.hasImgUrl = hasImgUrl[0].content.toString()
       }
-      const artistAddress = await web3Object.managerContract.methods.uniqueTokenCreators(token, 0).call({from: window.publicAddress, gas: 1000000})
+      const artistAddress = await web3Object.managerContract.methods.uniqueTokenCreators(token, 0).call({gas: 1000000})
       const artistInfo = await API.getuserInfo(artistAddress)
 
       if (artistInfo.imgHash) {
@@ -181,8 +181,12 @@ class Listshow extends React.Component {
         img : item.layers ? MockImg : item.list[0],
         name: item.canvasName || item.name,
         priceType: item.reservePrice != '0' ? '2' : (item.buyPrice == '0' ? '3' : '1'), // 1一口价，2拍卖，3不卖
-        auction: item.reservePrice != '0' ? (deteNow > item.auctionStartTime ? '1' : '2') : (item.buyPrice == '0' ? '4' : '3'), // 1拍卖中 2未开始拍卖 3一口价  4不卖
-        countdown: deteNow > item.auctionStartTime ? (item.auctionEndTime - deteNow) * 1000 : (item.auctionStartTime - deteNow) * 1000 ,
+
+        auction: item.reservePrice != '0' && deteNow < item.auctionEndTime ? 
+        (deteNow > item.auctionStartTime ? '1' : '2') : 
+        (deteNow > item.auctionEndTime && item.auctionEndTime != 0 ? '5' : (item.buyPrice == '0'  ? '4' : '3')), // 1拍卖中 2未开始拍卖 3一口价  4不卖 5拍卖结束的
+
+        countdown: deteNow > item.auctionStartTime ? (item.auctionEndTime - deteNow) * 1000 : (deteNow - item.auctionStartTime) * 1000 ,
         price: (item.reservePrice != '0' ?  item.reservePrice : item.buyPrice) + ' CTXC',
         token: item.tokenId,
         hasAddress: item.hasAddress,
@@ -194,6 +198,7 @@ class Listshow extends React.Component {
         look: '125'
       }
     })
+    
     this.setState(
       {
         allList: res,
@@ -247,6 +252,7 @@ class Listshow extends React.Component {
       <ThemeContext.Consumer>
         {(value) => (
           <div className='box'>
+          <Spin spinning={this.state.loading}>
             <div className='search'>
               <h1>{json[value.lan].gallery}</h1>
               <div className='searchButton'>
@@ -281,7 +287,6 @@ class Listshow extends React.Component {
                 </div>
               </div>
             </div>
-            <Spin spinning={this.state.loading}>
               <div className="pagBox">
                 {
                   this.state.list.map((item,index) => (
@@ -296,10 +301,17 @@ class Listshow extends React.Component {
                         {
                           // 不卖的不展示售价
                           item.priceType != '3' &&
-                          <span>
-                            <span className="pricename">{json[value.lan][`price${item.priceType}`]}</span>
-                            <span className="price">{item.price}</span>
-                          </span>
+                          (
+                            item.auction != '5' ? 
+                            <span>
+                              <span className="pricename">{json[value.lan][`price${item.priceType}`]}</span>
+                              <span className="price">{item.price}</span>
+                            </span>
+                            :
+                            <span>
+                              {json[value.lan].auction5}
+                            </span>
+                          )
                         }
                         
                       </h3>

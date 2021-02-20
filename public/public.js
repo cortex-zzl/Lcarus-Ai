@@ -6,3 +6,4 @@ window.defaultImg = 'https://ss1.bdstatic.com/70cFvXSh_Q1YnxGkpoWK1HF6hhy/it/u=3
 window.defaultImgT = 'https://ss3.bdstatic.com/70cFv8Sh_Q1YnxGkpoWK1HF6hhy/it/u=2070453827,1163403148&fm=26&gp=0.jpg' // 默认头像
 window.defaultUnit = 1 // 默认的交易单位，鉴于前期测试需要，ctxc单位太大， 1ctxc = Math(10, 18)个基本单位
 window.ipfsConfig = {host: '127.0.0.1', port: '5001', protocol: 'http'} // ipfs服务器配置
+window.walletModel = 1 // 使用的钱包 1 ctx钱包   2 metamask,这个钱包一直更新，相关代码可能失效

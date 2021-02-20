@@ -62,14 +62,12 @@ export  class userEdit extends React.Component {
     
   }
   handleChange = info => {
-    console.log(info)
     if (info.file.status === 'uploading') {
       this.setState({ loading: true });
       return;
     }
     if (info.file.status === 'done') {
       getBase64(info.file.originFileObj, (data) => {
-        console.log(data)
         this.setState({
           loading: false, 
           userInfor: {

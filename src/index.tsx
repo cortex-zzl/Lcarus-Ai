@@ -59,13 +59,14 @@ class APP extends React.Component {
   componentDidMount(){
     const _this = this
     // 轮询检测钱包状态
-    // window.walletLogin = setInterval( () => {
-    //   if (window.ctxWeb3 && window.ctxWeb3.eth.defaultAccount) {
-    //     if(!_this.state.hasLoginWallet)  _this.setState({hasLoginWallet: true, address: window.ctxWeb3.eth.defaultAccount})
-    //   } else {
-    //     if (_this.state.hasLoginWallet) _this.setState({hasLoginWallet: false})
-    //   }
-    // } , 500)
+    window.walletLogin =  window.walletModel === 1 ?  setInterval( () => {
+      if (window.ctxWeb3 && window.ctxWeb3.eth.defaultAccount) {
+        if(!_this.state.hasLoginWallet)  _this.setState({hasLoginWallet: true, address: window.ctxWeb3.eth.defaultAccount})
+        if(_this.state.hasLoginWallet && window.ctxWeb3.eth.defaultAccount.toUpperCase() != _this.state.address.toUpperCase())  _this.setState({address: window.ctxWeb3.eth.defaultAccount})
+      } else {
+        if (_this.state.hasLoginWallet) _this.setState({hasLoginWallet: false, address: null})
+      }
+    } , 500) : setInterval( getwallet, 500)
     async function getwallet() {
       if (window.ethereum) {
         const addresss = await window.ethereum.request({ method: 'eth_accounts' })
@@ -76,18 +77,6 @@ class APP extends React.Component {
         if (_this.state.hasLoginWallet) _this.setState({hasLoginWallet: false})
       }
     }
-    // 检测钱包相关信息,钱包初始化需要时间
-    // setTimeout(() => {
-    //   if (!window.ethereum) {
-    //     uninstall();
-    //     return;
-    //   }
-      // if (!window.ctxWeb3.eth.defaultAccount) {
-      //   unlogin();
-      //   return;
-      // }
-    // }, 1000)
-     window.walletLogin = setInterval( getwallet, 500)
   }
   componentWillUnmount() {
     clearInterval(window.walletLogin)

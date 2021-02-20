@@ -12,7 +12,7 @@ import { web3Object } from '../../interface/contract.js'
 declare const window: any;
 import Web3 from 'web3'
 import {ipfsAdd} from '../../fetch/ipfs.js'
-import {sendCoin} from '../../interface/sendTransaction.js'
+import {sendCoin, sendTransactionInCtxwallet} from '../../interface/sendTransaction.js'
 
 function getBase64(img, callback) {
   const reader = new FileReader();
@@ -112,7 +112,7 @@ export  class createArt extends React.Component {
       var  address = this.context.address
       this.setState({loadingM: 'Assign artwork IDs'})
 
-      let tokenId = await web3Object.managerContract.methods.expectedTokenSupply().call({from: address, gas: 1000000})
+      let tokenId = await web3Object.managerContract.methods.expectedTokenSupply().call({gas: 1000000})
       this.state.uploadData.tokenId = tokenId
       const obj = [
         address,
@@ -128,14 +128,26 @@ export  class createArt extends React.Component {
       this.setState({loadingM: 'Start COINS'})
       const addressS = this.state.uploadData.layers.map(item => address)
       console.log(tokenId, ipfsRes[0].hash, addressS)
+      if(window.walletModel === 1) {
+        const ctrData = web3Object.managerContract.methods.mintArtwork(tokenId, ipfsRes[0].hash, addressS).encodeABI()
+        sendTransactionInCtxwallet(ctrData, this.context.address, 0, (err,b) => {
+          this.setState({loading: false})
+          console.log(err, b)
+          if (err == undefined) {
+            this.setState({ loadingM: 'End COINS',canvasCoin: true, canvasTokenId: tokenId})
+          }
+        })
+      }
+      if (window.walletModel === 2){
         web3Object.managerContract.methods.mintArtwork(
           tokenId, ipfsRes[0].hash, addressS
           ).send({from: address})
           .then(res => {this.setState({loading: false, loadingM: 'End COINS',canvasCoin: true, canvasTokenId: tokenId})})
-          .catch(err => message.error(JSON.stringify(err)))
-      }).catch(err => message.error(JSON.stringify(err)))
+          .catch(err => console.log(err))
+      }
+      }).catch(err => console.log(err))
     } catch(err) {
-      message.error(JSON.stringify(err))
+      console.log(err)
     }
     
     
@@ -163,22 +175,40 @@ export  class createArt extends React.Component {
       -1,
       []
     ]
-    console.log(obj)
-    web3Object.managerContract.methods.setupControlToken(...obj).send({from: address})
-    .then(res => 
-      {
-        console.log(res)
-        this.setState({
-          loading: false,
-          loadingM: 'End COINS',
-          canvasCoin: true,
-          coins: this.state.coins.concat([index])
-        })
-        if (this.state.coins.length === this.state.uploadData.layers.length) {
-          this.setState({coinEnd: true})
+    if(window.walletModel === 1) {
+      const ctrData = web3Object.managerContract.methods.setupControlToken(...obj).encodeABI()
+      sendTransactionInCtxwallet(ctrData, address, 0, (err,b) => {
+        console.log(err,b)
+        if (err == undefined) {
+          this.setState({
+            loading: false,
+            loadingM: 'End COINS',
+            canvasCoin: true,
+            coins: this.state.coins.concat([index])
+          })
+          if (this.state.coins.length === this.state.uploadData.layers.length) {
+            this.setState({coinEnd: true})
+          }
         }
       })
-    .catch(error => this.setState({loadingM: JSON.stringify(error), loading: false}))
+    }
+    if (window.walletModel === 2){
+      web3Object.managerContract.methods.setupControlToken(...obj).send({from: address})
+      .then(res => 
+        {
+          this.setState({
+            loading: false,
+            loadingM: 'End COINS',
+            canvasCoin: true,
+            coins: this.state.coins.concat([index])
+          })
+          if (this.state.coins.length === this.state.uploadData.layers.length) {
+            this.setState({coinEnd: true})
+          }
+        })
+      .catch(error => this.setState({loadingM: JSON.stringify(error), loading: false}))
+    }
+    
   }
   async componentDidMount(){
     // 注册为艺术家白名单
@@ -186,15 +216,15 @@ export  class createArt extends React.Component {
     // const whitelistTokenForCreator = web3Object.managerContract.methods.whitelistUser(address).encodeABI()
     // sendCoin(whitelistTokenForCreator, address).then(res => {
     //   console.log(res)
-    //   }).catch(err => message.error(JSON.stringify(err)))
-    if (window.localStorage.uploadData){
-      this.setState({uploadData: JSON.parse(window.localStorage.uploadData)})
-    }
+    //   }).catch(err => console.log(err))
+    // if (window.localStorage.uploadData){
+    //   this.setState({uploadData: JSON.parse(window.localStorage.uploadData)})
+    // }
     window.onbeforeunload=function(e){
       var e = window.event||e;  
       e.returnValue=(json[window.localStorage.language].error7);
     }
-    web3Object.managerContract.methods.artistWhitelist(this.context.address).call({from: this.context.address, gas:1000000})
+    web3Object.managerContract.methods.artistWhitelist(this.context.address).call({gas:1000000})
     .then(res => {
       // 用户没有创建艺术品的权限
       if (!res) {

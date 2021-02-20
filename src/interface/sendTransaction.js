@@ -10,7 +10,7 @@ export async function sendCoin(extraData, from){
   let nonce = await web3Object.wallet_web3.eth.getTransactionCount(adminAddress, 'pending')
   const txObj = {
     nonce:Web3Utils.toHex(nonce),
-    gasPrice: Web3Utils.toHex(2000000000),// 1000 maxwell
+    gasPrice: Web3Utils.toHex(1000000000),// 1000 maxwell
     gasLimit: Web3Utils.toHex(1000000), // calculation of gas and gas Price is skipped here
     to: window.mainAddress,
     value: Web3Utils.toHex('0'),
@@ -20,6 +20,22 @@ export async function sendCoin(extraData, from){
   var tx = new Tx(txObj);
   tx.sign(adminPvtKey)
   var serializedTx = '0x' + tx.serialize().toString('hex')
+
+  return await web3Object.wallet_web3.eth.sendSignedTransaction(serializedTx)
+}
+// 向我们的钱包发送交易
+export async function sendTransactionInCtxwallet(extraData, address, value, fn){
+  let nonce = await web3Object.wallet_web3.eth.getTransactionCount(adminAddress, 'pending')
+  window.ctxWeb3.eth.sendTransaction(
+    {
+      from: address,
+      to: window.mainAddress,
+      value: Web3Utils.toHex(value * window.defaultUnit),
+      gas: Web3Utils.toHex(1000000),
+      gasPrice: Web3Utils.toHex(1000000000),
+      nonce: Web3Utils.toHex(nonce),
+      data: extraData
+    }, fn)
 
   return await web3Object.wallet_web3.eth.sendSignedTransaction(serializedTx)
 }

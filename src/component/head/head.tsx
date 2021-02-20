@@ -84,7 +84,8 @@ export class GetUserInfoDom extends React.Component {
         }})
       }
     }
-    web3Object.managerContract.methods.artistWhitelist(this.context.address).call({from:  this.context.address, gas:1000000})
+    
+    web3Object.managerContract.methods.artistWhitelist(this.context.address).call({gas:1000000})
     .then(res => {
       console.log('地址  :' + this.context.address)
       console.log('是否拥有艺术家权限：' + res)

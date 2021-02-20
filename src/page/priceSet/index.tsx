@@ -13,6 +13,7 @@ import {API, uploadAvatar, walletSign} from '../../fetch/fetch'
 import './priceSet.less'
 import {ipfsGet} from '../../fetch/ipfs.js'
 import { web3Object } from '../../interface/contract.js'
+import {sendTransactionInCtxwallet} from '../../interface/sendTransaction.js'
 import moment from 'moment';
 declare const window: any;
 
@@ -41,18 +42,18 @@ export  class priceSet extends React.Component {
     this.state.address = address
     const  token = this.props.match.params.token
     if (!token || !address) window.history.go(-1)
-    const ownAddress = await web3Object.managerContract.methods.ownerOf(token).call({from: address, gas: 1000000})
+    const ownAddress = await web3Object.managerContract.methods.ownerOf(token).call({ gas: 1000000})
     if (ownAddress.toUpperCase() !== address.toUpperCase()) {
       window.history.go(-1)
       return
     }
     try {
       const arr = []
-      const hash = await web3Object.managerContract.methods.tokenURI(token).call({from: address, gas: 1000000})
+      const hash = await web3Object.managerContract.methods.tokenURI(token).call({gas: 1000000})
       let canvasContent = await ipfsGet(hash)
       canvasContent = JSON.parse(canvasContent[0].content.toString())
       // 查询售价
-      const canvasPrice = await web3Object.managerContract.methods.sellingState(token).call({from: address, gas: 1000000})
+      const canvasPrice = await web3Object.managerContract.methods.sellingState(token).call({ gas: 1000000})
       let canvasPriceType = '3'
       if(canvasPrice.buyPrice != '0')  {
         canvasPriceType = '1'
@@ -64,7 +65,7 @@ export  class priceSet extends React.Component {
       // 按照画布的token和图层的length，循环获取各个图层信息
       for (let i = 1; i < canvasContent.layers.length + 1; i ++) {
         const layerToken = token - 0 + i + ''
-        const layerHash = await web3Object.managerContract.methods.tokenURI(layerToken).call({from: address, gas: 1000000})
+        const layerHash = await web3Object.managerContract.methods.tokenURI(layerToken).call({ gas: 1000000})
         let layerContent = await ipfsGet(layerHash)
         layerContent = JSON.parse(layerContent[0].content.toString())
         // 循环加载当前图层的各个状态图片
@@ -73,7 +74,7 @@ export  class priceSet extends React.Component {
           layerContent.list[j] = imgContent[0].content.toString()
         }
         // 从合约获取当前图层/画布的售卖方式和售价
-        const layerPrice = await web3Object.managerContract.methods.sellingState(layerToken).call({from: address, gas: 1000000})
+        const layerPrice = await web3Object.managerContract.methods.sellingState(layerToken).call({gas: 1000000})
         let layerPriceType = '3'
         if(layerPrice.buyPrice != '0')  {
           layerPriceType = '1'
@@ -106,18 +107,30 @@ export  class priceSet extends React.Component {
       obj[1] = '0'
     }
     this.setState({loading: true})
-    console.log(obj)
-    web3Object.managerContract.methods.setSellingState(...obj).send({from: this.state.address})
-    .then(res =>  {
-      this.setState({loading: false})
-      data.priceType = num
-      message.success('success')
-      this.setState({data: [...this.state.data]})
-    })
-    .catch(res => {
-      message.error('error')
-      this.setState({loading: false})
-    })
+    if(window.walletModel === 1) {
+      const ctrData = web3Object.managerContract.methods.setSellingState(...obj).encodeABI()
+      sendTransactionInCtxwallet(ctrData, this.state.address, 0, (err,b) => {
+        this.setState({loading: false})
+        if (err == undefined) {
+          data.priceType = num
+          message.success('success')
+          this.setState({data: [...this.state.data]})
+        }
+      })
+    }
+    if (window.walletModel === 2){
+      web3Object.managerContract.methods.setSellingState(...obj).send({from: this.state.address})
+      .then(res =>  {
+        this.setState({loading: false})
+        data.priceType = num
+        message.success('success')
+        this.setState({data: [...this.state.data]})
+      })
+      .catch(res => {
+        message.error('error')
+        this.setState({loading: false})
+      })
+    }
   }
   render() {
     const genExtra = (item) => (
