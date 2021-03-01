@@ -14,7 +14,7 @@ const mainAddress = window.mainAddress // publicJs中统一设置
 if (window.walletModel === 1 && window.ctxWeb3) {
   const wallet_web3 =  new Web3(window.ctxWeb3.currentProvider)
   const managerContract = new wallet_web3.eth.Contract(minterface, mainAddress)
-  obj = {wallet_web3,wallet_web3, managerContract}
+  obj = {wallet_web3, managerContract}
 }
 
 const testAbi = [
@@ -55,7 +55,7 @@ if (window.walletModel === 2 && window.web3) {
   const wallet_web3 =  new Web3(window.web3.currentProvider)
   const managerContract = new wallet_web3.eth.Contract(minterface, mainAddress)
   // const managerContract2 = new wallet_web3.eth.Contract(testAbi, testAddress)
-  obj = {wallet_web3,wallet_web3, managerContract}
+  obj = {wallet_web3, managerContract}
 }
 
 

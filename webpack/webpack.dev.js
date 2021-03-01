@@ -70,6 +70,12 @@ module.exports = merge(common, {
         changeOrigin: true,
         secure: false
       },
+      '/Creat': {
+        target: 'http://223.94.61.114:50080',
+        pathRewrite: {'^/Creat': ''},
+        changeOrigin: true,
+        secure: false
+      },
     }
   }
 });

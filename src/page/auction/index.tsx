@@ -77,6 +77,7 @@ export  class Auction extends React.Component {
     }
     this.getLayers = this.getLayers.bind(this)
     this.handleOk = this.handleOk.bind(this)
+    this.acceptBid = this.acceptBid.bind(this)
     this.layerStates = this.layerStates.bind(this)
     this.timeGetPrice = this.timeGetPrice.bind(this)
     this.timeCount = this.timeCount.bind(this)
@@ -136,7 +137,7 @@ export  class Auction extends React.Component {
       return
     }
     if (this.state.info.auction == 1) {
-      this.setState({isModalVisible: true, offerPrice: Math.max(this.state.info.price + 1, this.state.info.startPrice)})
+      this.setState({isModalVisible: true, offerPrice: Math.max(this.state.info.price, this.state.info.startPrice)})
     }
     if (this.state.info.auction == 3) {
       if(window.walletModel === 1) {
@@ -220,14 +221,17 @@ export  class Auction extends React.Component {
   }
   // 每过3秒拿一次最高出价
   timeGetPrice(token) {
-    clearInterval(window.getPriceH)
-    let _this = this
     timeGetPriceFn()
-    window.getPriceH =  setInterval(timeGetPriceFn, 3000)
+    if (this.state.info.auction == 1) {
+      clearInterval(window.getPriceH)
+      window.getPriceH =  setInterval(timeGetPriceFn, 3000)
+    }
+    let _this = this
     function timeGetPriceFn() {
       web3Object.managerContract.methods.pendingBids(token).call({gas: 1000000})
       .then(res => {
-        _this.setState({info: {..._this.state.info, price: res.amount},exists : res.bidder == _this.context.address})
+        _this.setState({info: {..._this.state.info, price: res.amount},exists : res.bidder.toUpperCase() == _this.context.address.toUpperCase()})
+        console.log(_this.state)
       })
     }
   }
@@ -331,7 +335,7 @@ export  class Auction extends React.Component {
         token: data.canvasTokenId || 1,
         img: window.defaultImg 
       },
-      startPrice: data.reservePrice,
+      startPrice: data.reservePrice, // 如果起拍价一样，合约会报错
       price: data.buyPrice,
       countTime: deteNow > data.auctionStartTime ? (data.auctionEndTime - deteNow) * 1000 : (deteNow - data.auctionStartTime) * 1000 ,
       details: '这是一段详细信息xxxxxxxxxxxxxxxxxxxxxx',
@@ -344,22 +348,20 @@ export  class Auction extends React.Component {
       auction:  data.reservePrice != '0' ? (deteNow > data.auctionStartTime ? '1' : '2') : (data.buyPrice == '0' ? '4' : '3'), //，1拍卖中，2即将拍卖，3：售卖（一口价的物品， 4：不卖的物品 5拍卖结束
       imgType: type, //1主画布， 2图层
     }
-    
     if (data.reservePrice != '0' && deteNow > data.auctionEndTime) {
       infoC.auction = '5'
     }
     this.setState({
       info: infoC
     })
-    console.log(data)
     // 拍卖状态则，每过几秒去拿一次当前最高出价
-    this.state.info.auction == 1 && this.timeGetPrice(data.tokenId);
+    this.state.info.auction == 1 || this.state.info.auction == 5 && this.timeGetPrice(data.tokenId);
     // 拍卖或者等待拍卖的倒计时
     (this.state.info.auction == 1 || this.state.info.auction == 2) && this.timeCount()
     this.setState({loading: false})
     this.state.info.imgType == 1 && this.getLayers(data.layers)
-    this.state.info.imgType == 2 && this.layerStates(data.list)
-    this.state.info.auction == 1 && this.getAuctionRecord()
+    this.state.info.imgType == 2 && this.layerStates(data.list);
+    (this.state.info.auction == 1 || this.state.info.auction == 5) && this.getAuctionRecord()
   }
   render() {
     const columns = [
@@ -428,6 +430,7 @@ export  class Auction extends React.Component {
                               <p>
                                 {json[value.lan].price}: 
                                 <span className='priceNum'>{this.state.info.price}</span>
+                                {this.state.info.auction == 5 && this.state.exists}
                               </p>
                               {
                                 this.state.info.auction == 1 &&
@@ -441,7 +444,7 @@ export  class Auction extends React.Component {
                                 <Button onClick={this.acceptBid}>{json[value.lan].confirmation}</Button>
                               }
                               <Modal title={json[value.lan].offer} visible={this.state.isModalVisible} onOk={this.handleOk} onCancel={() => this.setState({isModalVisible: false})}>
-                                <InputNumber min={Math.max(this.state.info.price + 1, this.state.info.startPrice)} value={this.state.offerPrice} onChange={(v) => this.setState({offerPrice:v})}></InputNumber>&nbsp;&nbsp;&nbsp;<strong>CTXC</strong>
+                                <InputNumber min={Math.min(this.state.info.price, this.state.info.startPrice)} value={this.state.offerPrice} onChange={(v) => this.setState({offerPrice:v})}></InputNumber>&nbsp;&nbsp;&nbsp;<strong>CTXC</strong>
                               </Modal>
                             </div>
                           }
@@ -529,7 +532,7 @@ export  class Auction extends React.Component {
                 <div  className='layer'>
                   <h2>{this.state.info.imgType == 1 ? json[value.lan].layer : json[value.lan].states}</h2>
                   <div className='imgList'>
-                    <div className='listBox'>
+                    <div className='listBox' key={this.state.info.imgType}>
                       {
                         this.state.info.imgType == 1 &&
                         this.state.layers.map(item => (
@@ -541,7 +544,7 @@ export  class Auction extends React.Component {
                       {
                         this.state.info.imgType == 2 &&
                         this.state.layerStates.map(item => (
-                          <img key={new Date().getTime()} src={item} alt=""/>
+                          <img key={Math.random()} src={item} alt=""/>
                         ))
                       }
                     </div>

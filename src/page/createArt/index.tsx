@@ -127,12 +127,10 @@ export  class createArt extends React.Component {
       sendCoin(whitelistTokenForCreator, address).then(res => {
       this.setState({loadingM: 'Start COINS'})
       const addressS = this.state.uploadData.layers.map(item => address)
-      console.log(tokenId, ipfsRes[0].hash, addressS)
       if(window.walletModel === 1) {
         const ctrData = web3Object.managerContract.methods.mintArtwork(tokenId, ipfsRes[0].hash, addressS).encodeABI()
         sendTransactionInCtxwallet(ctrData, this.context.address, 0, (err,b) => {
           this.setState({loading: false})
-          console.log(err, b)
           if (err == undefined) {
             this.setState({ loadingM: 'End COINS',canvasCoin: true, canvasTokenId: tokenId})
           }
@@ -142,7 +140,9 @@ export  class createArt extends React.Component {
         web3Object.managerContract.methods.mintArtwork(
           tokenId, ipfsRes[0].hash, addressS
           ).send({from: address})
-          .then(res => {this.setState({loading: false, loadingM: 'End COINS',canvasCoin: true, canvasTokenId: tokenId})})
+          .then(res => {
+            this.setState({loading: false, loadingM: 'End COINS',canvasCoin: true, canvasTokenId: tokenId})
+          })
           .catch(err => console.log(err))
       }
       }).catch(err => console.log(err))
@@ -178,7 +178,6 @@ export  class createArt extends React.Component {
     if(window.walletModel === 1) {
       const ctrData = web3Object.managerContract.methods.setupControlToken(...obj).encodeABI()
       sendTransactionInCtxwallet(ctrData, address, 0, (err,b) => {
-        console.log(err,b)
         if (err == undefined) {
           this.setState({
             loading: false,
@@ -217,9 +216,9 @@ export  class createArt extends React.Component {
     // sendCoin(whitelistTokenForCreator, address).then(res => {
     //   console.log(res)
     //   }).catch(err => console.log(err))
-    // if (window.localStorage.uploadData){
-    //   this.setState({uploadData: JSON.parse(window.localStorage.uploadData)})
-    // }
+    if (window.localStorage.uploadData){
+      this.setState({uploadData: JSON.parse(window.localStorage.uploadData)})
+    }
     window.onbeforeunload=function(e){
       var e = window.event||e;  
       e.returnValue=(json[window.localStorage.language].error7);
@@ -239,6 +238,10 @@ export  class createArt extends React.Component {
       // window.localStorage.stepCurrent = this.state.current
     }
     window.onbeforeunload = null
+  }
+  clearData(){
+    this.state.uploadData.isComplete = true
+    window.localStorage.uploadData = null
   }
   handleChange = (info, item) => {
     // if (info.file.status === 'uploading') {
@@ -385,7 +388,7 @@ export  class createArt extends React.Component {
                                     }} rows={4}></Input.TextArea>
                                     <Upload
                                       listType="picture"
-                                      accept="png"
+                                      accept="image/png"
                                       defaultFileList={item.list}
                                       beforeUpload = {(file, fileList) => {
                                         return new Promise((resolve, reject) => {
@@ -516,7 +519,7 @@ export  class createArt extends React.Component {
                         {json[value.lan].next}
                       </Button>
                     ) : (
-                      <Button onClick={() => {window.localStorage.uploadData = null}} disabled={!this.state.coinEnd}>
+                      <Button onClick={this.clearData} disabled={!this.state.coinEnd}>
                         <Link  to={`/priceSet/${this.state.uploadData.tokenId}`}>{json[value.lan].step4}</Link>
                         
                       </Button>

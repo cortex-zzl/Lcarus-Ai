@@ -35,8 +35,23 @@ export async function sendTransactionInCtxwallet(extraData, address, value, fn){
       gasPrice: Web3Utils.toHex(1000000000),
       nonce: Web3Utils.toHex(nonce),
       data: extraData
-    }, fn)
-
-  return await web3Object.wallet_web3.eth.sendSignedTransaction(serializedTx)
+    }, setIn)
+    // 监听交易结果
+    async function setIn(err, hashTx){
+      if (err != null) {
+        fn(err, null)
+      }
+      window.ctxWeb3.eth.getTransactionReceipt(hashTx, (err2, res) => {
+        console.log(err2, res)
+        if (err2 != null || res != null) {
+          fn(err2, res)
+        } else {
+          setTimeout(() => {
+            setIn(null, hashTx)
+          }, 50)
+        }
+      })
+    }
+  // return await web3Object.wallet_web3.eth.sendSignedTransaction(serializedTx)
 }
 

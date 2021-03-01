@@ -1,6 +1,6 @@
 
 window.artSalesProceeds = [15, 5] // 艺术家首次和2次出售平台分成
-window.mainAddress = '0x7E6b4985a857C1b531F8d388C7aB83a76EB03DbD'  // 合约地址
+window.mainAddress = '0x9672484ba8cb1ad1f32dc955b09b7f2ed262e7cc'  // 合约地址
 window.publicAddress = '0x0b18c352E7fE19EfEa86A7e545fCE0D30951Af6B' // 有些页面不需要登录，但是需要地址调用合约
 window.defaultImg = 'https://ss1.bdstatic.com/70cFvXSh_Q1YnxGkpoWK1HF6hhy/it/u=3600922054,1964265679&fm=26&gp=0.jpg' // 目前画布没有图片，这是默认图片
 window.defaultImgT = 'https://ss3.bdstatic.com/70cFv8Sh_Q1YnxGkpoWK1HF6hhy/it/u=2070453827,1163403148&fm=26&gp=0.jpg' // 默认头像

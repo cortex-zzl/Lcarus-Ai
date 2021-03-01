@@ -180,7 +180,6 @@ class Listshow extends React.Component {
     
   }
   tabChange(key) {
-    console.log(key)
     if (key == 2) {
       this.setState({
         useList: this.state.ownList
@@ -203,7 +202,7 @@ class Listshow extends React.Component {
                     {new Array(2,3,5,4).map((item,index) => (
                         <TabPane tab={json[value.lan][`list${item}`]} key={item}>
                           {
-                            index < 3 && <ListTypeshow key={this.state.useList.length} useList = {this.state.useList}></ListTypeshow>
+                            index < 3 && <ListTypeshow showEdit={index == 0} key={this.state.useList.length} useList = {this.state.useList}></ListTypeshow>
                           }
                           {
                             index == 3 && <TradingList reacordList={this.state.reacordList}></TradingList>

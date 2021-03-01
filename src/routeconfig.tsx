@@ -6,6 +6,7 @@ import { userEdit } from './page/userEdit/index';
 import { createArt } from './page/createArt/index';
 import { generateLayer } from './page/generateLayer/index';
 import { priceSet } from './page/priceSet/index';
+import { LayersEdit } from './page/layersEdit/index';
 import React, { useState } from 'react';
 import { message } from 'antd';
 
@@ -75,5 +76,10 @@ export const perRoutes = [
     name: '艺术品定价',
     path: '/priceSet/:token',
     component:  priceSet 
+  },
+  {
+    name: '画布或者图层编辑',
+    path: '/layersEdit/:token',
+    component:  LayersEdit 
   }
 ]

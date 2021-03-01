@@ -65,7 +65,8 @@ export class ListTypeshow extends React.Component {
     current: number,
   }
   props: {
-    useList: Array<any>
+    useList: Array<any>,
+    showEdit: boolean
   }
   onChange (pageNumber) {
     this.setState(
@@ -194,10 +195,17 @@ export class ListTypeshow extends React.Component {
                 {
                   this.state.list.map((item,index) => (
                     <div className={`list auction${item.auction}`} key = {index}>
-
                       <Link to={`/auction/${item.token}`}>
                         <img src={item.img} className='flur' alt=""  />
                       </Link>
+                      {
+                        this.props.showEdit && 
+                        <Link to={`/layersEdit/${item.token}`}>
+                          <Button className='ownEdit' type="primary" shape="round" icon={<EditOutlined />} size='small'>
+                            {json2[value.lan].edit}
+                          </Button>
+                        </Link>
+                      }
                       <span className={`type ${value.lan}`}>{json[value.lan].show[item.auction - 1]}</span>
                       <h3>
                         <span className="name">{item.name}</span>

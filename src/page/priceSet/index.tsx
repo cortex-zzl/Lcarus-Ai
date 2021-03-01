@@ -62,29 +62,42 @@ export  class priceSet extends React.Component {
         canvasPriceType = '2'
       }
       arr.push({...canvasContent, type: json[window.localStorage.language].canvas, tokenId: token, priceType: canvasPriceType, ...canvasPrice})
-      // 按照画布的token和图层的length，循环获取各个图层信息
-      for (let i = 1; i < canvasContent.layers.length + 1; i ++) {
-        const layerToken = token - 0 + i + ''
-        const layerHash = await web3Object.managerContract.methods.tokenURI(layerToken).call({ gas: 1000000})
-        let layerContent = await ipfsGet(layerHash)
-        layerContent = JSON.parse(layerContent[0].content.toString())
+      if(canvasContent.list) {
         // 循环加载当前图层的各个状态图片
-        for (let j = 0; j < layerContent.list.length; j ++) {
-          let imgContent = await ipfsGet(layerContent.list[j])
-          layerContent.list[j] = imgContent[0].content.toString()
+        for (let j = 0; j < canvasContent.list.length; j ++) {
+          let imgContent = await ipfsGet(canvasContent.list[j])
+          canvasContent.list[j] = imgContent[0].content.toString()
         }
-        // 从合约获取当前图层/画布的售卖方式和售价
-        const layerPrice = await web3Object.managerContract.methods.sellingState(layerToken).call({gas: 1000000})
-        let layerPriceType = '3'
-        if(layerPrice.buyPrice != '0')  {
-          layerPriceType = '1'
-        }
-        if(layerPrice.reservePrice != '0')  {
-          layerPriceType = '2'
-        }
-        arr.push({priceType: layerPriceType, ...layerContent,  tokenId: layerToken, ...layerPrice})
       }
-      console.log(arr)
+      if(canvasContent.layers) {
+        // 按照画布的token和图层的length，循环获取各个图层信息
+        for (let i = 1; i < canvasContent.layers.length + 1; i ++) {
+          const layerToken = token - 0 + i + ''
+          const ownAddress = await web3Object.managerContract.methods.ownerOf(layerToken).call({ gas: 1000000})
+          // 这个图层有可能已经单独卖掉了，没有拥有权就不能再修改价格
+          if (ownAddress.toUpperCase() !== address.toUpperCase()) {
+            continue
+          }
+          const layerHash = await web3Object.managerContract.methods.tokenURI(layerToken).call({ gas: 1000000})
+          let layerContent = await ipfsGet(layerHash)
+          layerContent = JSON.parse(layerContent[0].content.toString())
+          // 循环加载当前图层的各个状态图片
+          for (let j = 0; j < layerContent.list.length; j ++) {
+            let imgContent = await ipfsGet(layerContent.list[j])
+            layerContent.list[j] = imgContent[0].content.toString()
+          }
+          // 从合约获取当前图层/画布的售卖方式和售价
+          const layerPrice = await web3Object.managerContract.methods.sellingState(layerToken).call({gas: 1000000})
+          let layerPriceType = '3'
+          if(layerPrice.buyPrice != '0')  {
+            layerPriceType = '1'
+          }
+          if(layerPrice.reservePrice != '0')  {
+            layerPriceType = '2'
+          }
+          arr.push({priceType: layerPriceType, ...layerContent,  tokenId: layerToken, ...layerPrice})
+        }
+      }
       this.setState({data: arr, loading: false})
     } catch(error) {
       message.error(JSON.stringify(error))
@@ -110,6 +123,7 @@ export  class priceSet extends React.Component {
     if(window.walletModel === 1) {
       const ctrData = web3Object.managerContract.methods.setSellingState(...obj).encodeABI()
       sendTransactionInCtxwallet(ctrData, this.state.address, 0, (err,b) => {
+        console.log(err,b)
         this.setState({loading: false})
         if (err == undefined) {
           data.priceType = num

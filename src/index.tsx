@@ -29,7 +29,10 @@ import 'antd/dist/antd.css';
 class APP extends React.Component {
   constructor(props: any) {
     super(props);
-
+    let hasLoginWallet = false
+    if (window.walletModel === 1 && window.ctxWeb3 && window.ctxWeb3.eth.defaultAccount) hasLoginWallet = true
+    let address = null
+    if (window.walletModel === 1 && window.ctxWeb3 && window.ctxWeb3.eth.defaultAccount) address = window.ctxWeb3.eth.defaultAccount
     this.state = {
       lan: localStorage.language || 'zn',
       ChangeLan: (value) => {
@@ -46,8 +49,8 @@ class APP extends React.Component {
         }, 1500);
       },
       // hasLoginWallet: window.ctxWeb3 && window.ctxWeb3.eth.defaultAccount
-      hasLoginWallet: false,
-      address: null
+      hasLoginWallet: hasLoginWallet,
+      address: address
     };
   }
   state: {
@@ -59,7 +62,7 @@ class APP extends React.Component {
   componentDidMount(){
     const _this = this
     // 轮询检测钱包状态
-    window.walletLogin =  window.walletModel === 1 ?  setInterval( () => {
+    window.walletModel === 1 ?  setInterval( () => {
       if (window.ctxWeb3 && window.ctxWeb3.eth.defaultAccount) {
         if(!_this.state.hasLoginWallet)  _this.setState({hasLoginWallet: true, address: window.ctxWeb3.eth.defaultAccount})
         if(_this.state.hasLoginWallet && window.ctxWeb3.eth.defaultAccount.toUpperCase() != _this.state.address.toUpperCase())  _this.setState({address: window.ctxWeb3.eth.defaultAccount})

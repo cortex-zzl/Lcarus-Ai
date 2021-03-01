@@ -21,6 +21,25 @@ function strToBinary(str){
   return result
 }
 
+export function downImg (address, text){
+  const data = JSON.stringify({message: text})
+  return new Promise(function  (resolve, reject) {
+    fetch(`/Creat/picmaker?id=${address}`, {
+        method: 'POST',
+        body: data
+      })
+      .then(res => {
+        return res.blob()
+      })
+      .then(res => {
+        let blob = new Blob([res], {type: 'image/png'})
+        let url = URL.createObjectURL(blob)
+        resolve(url)
+      })
+      .catch(err => console.log(err))
+  })
+}
+
 export const API = {
   // 获取用户信息
   getuserInfo: (address) => {
